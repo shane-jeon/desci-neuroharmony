@@ -1,7 +1,5 @@
 # NeuroHarmony: Decentralized Research Collaboration Platform
 
-![NeuroHarmony Banner](public/banner.png)
-
 ## 🧠 Overview
 
 NeuroHarmony is a decentralized platform that revolutionizes neuroscience research collaboration through blockchain technology. It enables researchers to collaborate, share resources, and govern research funding through a transparent and efficient DAO structure.
