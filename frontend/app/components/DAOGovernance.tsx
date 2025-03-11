@@ -101,7 +101,7 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
   }, [mounted, web3, account]);
 
   const fetchProposals = async () => {
-    if (!web3 || !account) {
+    if (!web3) {
       return;
     }
 
@@ -164,15 +164,22 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
     }
   };
 
-  // Add a manual refresh button for proposals
+  // Add useEffect to fetch proposals on mount and when web3 changes
+  useEffect(() => {
+    if (mounted && web3) {
+      fetchProposals();
+    }
+  }, [mounted, web3]);
+
   const handleRefreshProposals = () => {
-    if (web3 && account) {
+    if (web3) {
       fetchProposals();
     } else {
-      showModal(
-        "Wallet Required",
-        "Please connect your wallet to view proposals.",
-      );
+      setModal({
+        isOpen: true,
+        title: "Wallet Required",
+        message: "Please connect your wallet to view proposals.",
+      });
     }
   };
 
@@ -228,10 +235,18 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
       await fetchProposals();
       setNewProposal({ description: "", budget: "" });
       setFormErrors({ description: "", budget: "" });
-      showModal("Success", "Proposal created successfully!");
+      setModal({
+        isOpen: true,
+        title: "Success",
+        message: "Proposal created successfully!",
+      });
     } catch (error) {
       console.error("Error creating proposal:", error);
-      showModal("Error", "Failed to create proposal. Please try again.");
+      setModal({
+        isOpen: true,
+        title: "Error",
+        message: "Failed to create proposal. Please try again.",
+      });
     } finally {
       setLoadingStates((prev: LoadingStates) => ({
         ...prev,
@@ -344,7 +359,6 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
     }
 
     try {
-      // Set loading state for this specific proposal
       setLoadingStates((prev: LoadingStates) => ({
         ...prev,
         voting: { ...prev.voting, [proposalId]: true },
@@ -355,171 +369,143 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
         neuroGrantDAO.address,
       );
 
-      console.log("=== Starting vote process ===");
-      console.log("DAO Contract address:", neuroGrantDAO.address);
-      console.log("Account voting:", account);
-      console.log("Proposal ID:", proposalId);
-
       // First check if the proposal exists and is not executed
-      console.log("Fetching proposal details...");
       const proposal = (await contract.methods
         .proposals(proposalId)
         .call()) as ContractProposal;
 
       if (!proposal) {
-        showModal("Error", "Proposal not found.");
+        setModal({
+          isOpen: true,
+          title: "Error",
+          message: "Proposal not found.",
+        });
         return;
       }
 
       if (proposal.executed) {
-        showModal("Error", "This proposal has already been executed.");
+        setModal({
+          isOpen: true,
+          title: "Error",
+          message: "This proposal has already been executed.",
+        });
         return;
       }
 
       // Check if user has already voted
-      console.log("Checking if user has already voted...");
       const hasVoted = await contract.methods
         .hasUserVoted(proposalId, account)
         .call();
-      console.log("Has user voted:", hasVoted);
 
       if (hasVoted) {
-        showModal("Voting Error", "You have already voted on this proposal.");
+        setModal({
+          isOpen: true,
+          title: "Voting Error",
+          message: "You have already voted on this proposal.",
+        });
         return;
       }
 
       // Check current voting power before attempting to update
-      console.log("Checking current voting power...");
       const currentVotingPower: string = await contract.methods
         .getVotingPower(account)
         .call();
-      console.log("Current voting power (wei):", currentVotingPower);
-      console.log(
-        "Current voting power (NEURO):",
-        web3.utils.fromWei(currentVotingPower, "ether"),
-      );
 
       // Get current staked amount from NEUROToken contract
-      console.log("Checking NEURO token balance...");
       const neuroTokenContract = new web3.eth.Contract(
         neuroToken.abi as AbiItem[],
         neuroToken.address,
       );
 
-      console.log("NEURO Token contract address:", neuroToken.address);
       const stakedAmount: string = await neuroTokenContract.methods
         .getStakedAmount(account)
         .call();
-      console.log("Staked amount (wei):", stakedAmount);
-      console.log(
-        "Staked amount (NEURO):",
-        web3.utils.fromWei(stakedAmount, "ether"),
-      );
 
       if (BigInt(stakedAmount) <= BigInt(0)) {
-        showModal(
-          "Voting Error",
-          "You need to stake NEURO tokens to vote. Please stake some tokens first.",
-        );
+        setModal({
+          isOpen: true,
+          title: "Voting Error",
+          message:
+            "You need to stake NEURO tokens to vote. Please stake some tokens first.",
+        });
         return;
       }
 
-      // Use a small amount of voting power (0.1 NEURO) to test
+      // Use 0.1 NEURO for voting
       const voteAmount = web3.utils.toWei("0.1", "ether");
-      console.log("Vote amount (wei):", voteAmount);
-      console.log(
-        "Vote amount (NEURO):",
-        web3.utils.fromWei(voteAmount, "ether"),
-      );
 
       // Check if user has enough voting power
       if (BigInt(currentVotingPower) < BigInt(voteAmount)) {
         // Try to update voting power first
-        console.log("Insufficient voting power, attempting to update...");
-        const updateTx = await contract.methods
-          .updateVotingPower(account)
-          .send({
-            from: account,
-            gas: "200000", // Fixed gas amount for update
-          });
-        console.log("Update voting power result:", updateTx);
+        await contract.methods.updateVotingPower(account).send({
+          from: account,
+          gas: "200000",
+        });
 
         // Check voting power again
         const newVotingPower: string = await contract.methods
           .getVotingPower(account)
           .call();
-        console.log(
-          "New voting power after update (NEURO):",
-          web3.utils.fromWei(newVotingPower, "ether"),
-        );
 
         if (BigInt(newVotingPower) < BigInt(voteAmount)) {
-          showModal(
-            "Voting Error",
-            `Insufficient voting power. You need at least 0.1 NEURO voting power. Current voting power: ${web3.utils.fromWei(
+          setModal({
+            isOpen: true,
+            title: "Voting Error",
+            message: `Insufficient voting power. You need at least 0.1 NEURO voting power. Current voting power: ${web3.utils.fromWei(
               newVotingPower,
               "ether",
             )} NEURO`,
-          );
+          });
           return;
         }
       }
 
       // Try to vote with a higher gas limit
-      console.log("Estimating gas for vote...");
       const gasEstimate = await contract.methods
         .vote(proposalId, voteAmount)
         .estimateGas({ from: account });
-      console.log("Vote gas estimate:", gasEstimate);
 
       // Use 2x the estimated gas to ensure enough gas for both voting power update and vote
       const adjustedGas = (BigInt(gasEstimate) * BigInt(2)).toString();
-      console.log("Adjusted gas limit:", adjustedGas);
 
-      console.log("Submitting vote transaction...");
       const voteTx = await contract.methods.vote(proposalId, voteAmount).send({
         from: account,
         gas: adjustedGas,
       });
-      console.log("Vote transaction result:", voteTx);
 
       // Wait for one block confirmation
       await web3.eth.getTransactionReceipt(voteTx.transactionHash);
 
-      // Check final state
-      const finalProposal = await contract.methods.proposals(proposalId).call();
-      console.log("Final proposal state:", finalProposal);
+      // Update voting power after successful vote
+      const updatedVotingPower: string = await contract.methods
+        .getVotingPower(account)
+        .call();
+      setVotingPower(web3.utils.fromWei(updatedVotingPower, "ether"));
+
+      // Refresh proposals to show updated vote count
+      await fetchProposals();
 
       setModal({
         isOpen: true,
         title: "Success",
         message: "Successfully voted on the proposal!",
       });
-
-      // Refresh the data
-      await fetchProposals();
-      await syncVotingPower();
     } catch (error) {
       console.error("Error voting for proposal:", error);
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
 
-      if (error instanceof Error) {
-        console.error("Error details:", {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
+      if (
+        error instanceof Error &&
+        error.message.includes("insufficient funds")
+      ) {
+        setModal({
+          isOpen: true,
+          title: "Voting Failed",
+          message:
+            "Insufficient funds for gas. Please make sure you have enough ETH to cover the transaction.",
         });
-
-        if (error.message.includes("insufficient funds")) {
-          setModal({
-            isOpen: true,
-            title: "Voting Failed",
-            message:
-              "Insufficient funds for gas. Please make sure you have enough ETH to cover the transaction.",
-          });
-          return;
-        }
+        return;
       }
 
       setModal({
@@ -528,7 +514,6 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
         message: `Failed to vote on proposal: ${errorMessage}. Please try again.`,
       });
     } finally {
-      // Clear loading state for this specific proposal
       setLoadingStates((prev: LoadingStates) => ({
         ...prev,
         voting: { ...prev.voting, [proposalId]: false },
