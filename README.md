@@ -69,6 +69,8 @@ npm run dev
    - RPC URL: http://127.0.0.1:8545
    - Chain ID: 31337
    - Currency Symbol: ETH
+3. Reset your account in MetaMask if you've used it before:
+   - Settings > Advanced > Reset Account
 
 ### 5. Get Test NEURO Tokens
 
@@ -79,16 +81,18 @@ cd backend
 npx hardhat run scripts/mint.js --network localhost
 ```
 
-This will mint 1000 NEURO tokens to your connected wallet address.
+This will mint 10,000 NEURO tokens to your connected wallet address.
 
 ## Smart Contract Addresses (Local Development)
 
-- NEUROToken: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
-- NeuroGrantDAO: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
-- NeuroDataProvenance: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-- ResearchCollaboration: 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
-- ResearchFunding: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
-- ScienceToken: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
+After deploying the contracts, you'll have these addresses (note that these will change each time you redeploy):
+
+- NEUROToken: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
+- NeuroGrantDAO: 0x0165878A594ca255338adfa4d48449f69242Eb8F
+- NeuroDataProvenance: 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
+- ResearchCollaboration: 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6
+- ResearchFunding: 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
+- ScienceToken: 0x610178dA211FEF7D417bC0e6FeD39F05609AD788
 
 ## Development Accounts
 
@@ -115,15 +119,18 @@ When running the local Hardhat network, you can use these pre-funded accounts fo
 
    - Make sure you've deployed contracts using `npx hardhat run scripts/deploy.js --network localhost`
    - Verify contract addresses in `backend/config/contracts.config.json`
+   - Check that you're connected to the correct network in MetaMask
 
 3. If Python backend fails to start:
+
    - Check if all required Python packages are installed
    - Verify the Hardhat node is running
    - Ensure the contract addresses in config match the deployed addresses
 
-## Contributing
-
-Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+4. If transactions fail:
+   - Make sure you have enough ETH for gas fees
+   - Verify you're using the correct account in MetaMask
+   - Check that contract addresses are correct
 
 ## License
 

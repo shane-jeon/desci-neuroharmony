@@ -28,6 +28,8 @@ const NeuroharmonyFrontend: React.FC = () => {
     title: "",
     message: "",
   });
+  const [error, setError] = useState<ModalState | null>(null);
+  const [success, setSuccess] = useState<ModalState | null>(null);
 
   // Handle mounting state
   useEffect(() => {
@@ -41,9 +43,7 @@ const NeuroharmonyFrontend: React.FC = () => {
           const data = await fetchDatasets();
           setDatasets(data);
         } catch (error) {
-          console.error("Error fetching datasets:", error);
-          setModal({
-            isOpen: true,
+          setError({
             title: "Error",
             message: "Failed to fetch datasets. Please try again later.",
           });
@@ -55,34 +55,38 @@ const NeuroharmonyFrontend: React.FC = () => {
     }
   }, [mounted]);
 
-  const handleUpload = async (dataset: Dataset) => {
-    if (!mounted) return;
-    setLoadingId(dataset.id);
-    try {
-      const result = await uploadDataset(
-        dataset.id,
-        dataset.source,
-        "CC BY 4.0",
-      );
+  const handleUpload = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-      setModal({
-        isOpen: true,
-        title: result.success ? "Success" : "Error",
-        message:
-          result.message +
-          (result.transactionHash
-            ? `\nTransaction Hash: ${result.transactionHash}`
-            : ""),
+    if (!datasetId || !origin || !license) {
+      setError({
+        title: "Validation Error",
+        message: "Please fill in all required fields.",
       });
+      return;
+    }
+
+    try {
+      const result = await uploadDataset(datasetId, origin, license);
+
+      if (result.success) {
+        setSuccess({
+          title: "Success",
+          message: "Dataset uploaded successfully!",
+        });
+        await fetchDatasets();
+        resetForm();
+      } else {
+        setError({
+          title: "Upload Failed",
+          message: result.error || "Failed to upload dataset.",
+        });
+      }
     } catch (error) {
-      console.error("Error uploading dataset:", error);
-      setModal({
-        isOpen: true,
+      setError({
         title: "Error",
         message: "An unexpected error occurred. Please try again.",
       });
-    } finally {
-      setLoadingId(null);
     }
   };
 
@@ -202,7 +206,7 @@ const NeuroharmonyFrontend: React.FC = () => {
                       : ""
                   }`}
                   disabled={loadingId === dataset.id}
-                  onClick={() => handleUpload(dataset)}>
+                  onClick={() => handleUpload(event)}>
                   {loadingId === dataset.id ? "Uploading..." : "Upload"}
                 </button>
                 <button

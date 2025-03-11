@@ -256,54 +256,36 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
   };
 
   const syncVotingPower = async () => {
-    if (!web3 || !account) {
+    if (!account || !web3 || !neuroToken || !neuroGrantDAO) {
       return;
     }
 
     try {
-      console.log("=== Starting syncVotingPower ===");
-      console.log("Account:", account);
-      setLoadingStates((prev: LoadingStates) => ({
-        ...prev,
-        updatingVotingPower: true,
-      }));
-
       const neuroTokenContract = new web3.eth.Contract(
         neuroToken.abi as AbiItem[],
         neuroToken.address,
       );
-
-      const stakedAmount: any = await neuroTokenContract.methods
-        .getStakedAmount(account)
-        .call();
-      console.log("Current staked amount (wei):", stakedAmount);
-      const stakedAmountInNeuro = web3.utils.fromWei(
-        stakedAmount.toString(),
-        "ether",
-      );
-      console.log("Current staked amount (NEURO):", stakedAmountInNeuro);
-
-      if (BigInt(stakedAmount.toString()) <= BigInt(0)) {
-        console.log("No staked tokens found, setting voting power to 0");
-        setVotingPower("0");
-        return;
-      }
-
       const daoContract = new web3.eth.Contract(
         neuroGrantDAO.abi as AbiItem[],
         neuroGrantDAO.address,
       );
 
-      try {
-        const currentPower: any = await daoContract.methods
-          .getVotingPower(account)
-          .call();
-        console.log(
-          "Current voting power before update (NEURO):",
-          web3.utils.fromWei(currentPower.toString(), "ether"),
-        );
+      const stakedAmount: any = await neuroTokenContract.methods
+        .getStakedAmount(account)
+        .call();
 
-        console.log("Attempting to update voting power...");
+      const stakedAmountInNeuro = web3.utils.fromWei(stakedAmount, "ether");
+
+      if (stakedAmount === "0") {
+        setVotingPower("0");
+        return;
+      }
+
+      const currentPower: any = await daoContract.methods
+        .getVotingPower(account)
+        .call();
+
+      if (currentPower !== stakedAmount) {
         const gasEstimate = await daoContract.methods
           .updateVotingPower(account)
           .estimateGas({ from: account });
@@ -312,39 +294,19 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
           .updateVotingPower(account)
           .send({
             from: account,
-            gas: ((BigInt(gasEstimate) * BigInt(12)) / BigInt(10)).toString(),
+            gas: Math.floor(gasEstimate * 1.2),
           });
-        console.log("Update voting power transaction:", updateTx);
 
         const newPower: any = await daoContract.methods
           .getVotingPower(account)
           .call();
-        console.log(
-          "New voting power (NEURO):",
-          web3.utils.fromWei(newPower.toString(), "ether"),
-        );
-        setVotingPower(web3.utils.fromWei(newPower.toString(), "ether"));
-      } catch (error) {
-        console.warn(
-          "Failed to update voting power, using staked amount instead",
-        );
-        console.error("Update voting power error:", error);
-        setVotingPower(stakedAmountInNeuro);
+
+        setVotingPower(web3.utils.fromWei(newPower, "ether"));
+      } else {
+        setVotingPower(web3.utils.fromWei(currentPower, "ether"));
       }
     } catch (error) {
-      console.error("Error in syncVotingPower:", error);
-      if (error instanceof Error) {
-        console.error("Error details:", {
-          message: error.message,
-          stack: error.stack,
-        });
-      }
-      console.warn("Failed to sync voting power, will try again later");
-    } finally {
-      setLoadingStates((prev: LoadingStates) => ({
-        ...prev,
-        updatingVotingPower: false,
-      }));
+      setVotingPower(web3.utils.fromWei(stakedAmount || "0", "ether"));
     }
   };
 

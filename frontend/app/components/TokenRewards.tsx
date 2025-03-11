@@ -64,6 +64,7 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
   const [balance, setBalance] = useState<string>("0");
   const [stakedAmount, setStakedAmount] = useState<string>("0");
   const [stakeInput, setStakeInput] = useState<string>("");
+  const [unstakeInput, setUnstakeInput] = useState<string>("");
   const [rewardHistory, setRewardHistory] = useState<RewardActivity[]>([]);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState({
@@ -310,10 +311,14 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
     try {
       console.log("=== Starting unstakeTokens function ===");
       console.log("Account:", account);
-      console.log("Unstake Input:", stakeInput);
+      console.log("Unstake Input:", unstakeInput);
 
       // Input validation
-      if (!stakeInput || isNaN(Number(stakeInput)) || Number(stakeInput) <= 0) {
+      if (
+        !unstakeInput ||
+        isNaN(Number(unstakeInput)) ||
+        Number(unstakeInput) <= 0
+      ) {
         showModal(
           "Validation Error",
           "Please enter a valid positive number of tokens to unstake.",
@@ -322,7 +327,7 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
       }
 
       // Convert input to Wei for comparison
-      const unstakeAmountWei = web3.utils.toWei(stakeInput, "ether");
+      const unstakeAmountWei = web3.utils.toWei(unstakeInput, "ether");
       const stakedWei = web3.utils.toWei(stakedAmount, "ether");
 
       // Check if unstake amount is more than staked balance
@@ -358,10 +363,13 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
         });
 
       console.log("Unstake transaction successful:", transaction);
-      showModal("Success", `Successfully unstaked ${stakeInput} NEURO tokens.`);
+      showModal(
+        "Success",
+        `Successfully unstaked ${unstakeInput} NEURO tokens.`,
+      );
 
       // Clear input and refresh balances
-      setStakeInput("");
+      setUnstakeInput("");
       await fetchBalances();
       await fetchRewardHistory();
     } catch (error: unknown) {
@@ -409,31 +417,80 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
       {/* Staking Interface */}
       <div className="mb-8 rounded-lg bg-white p-4 shadow">
-        <h3 className="mb-4 text-xl font-semibold">Stake Your Tokens</h3>
+        <h3 className="mb-4 text-xl font-semibold">Stake & Unstake Tokens</h3>
         <div className="space-y-4">
-          <div className="flex gap-4">
-            <input
-              type="number"
-              placeholder="Amount to stake"
-              value={stakeInput}
-              onChange={(e) => setStakeInput(e.target.value)}
-              className="flex-1 rounded border p-2"
-              step="0.1"
-            />
-            <button
-              onClick={stakeTokens}
-              disabled={loading || !stakeInput}
-              className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:bg-gray-400">
-              {loading ? "Staking..." : "Stake"}
-            </button>
+          {/* Staking Controls */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Stake Tokens
+            </label>
+            <div className="flex gap-4">
+              <input
+                type="number"
+                placeholder="Amount to stake"
+                value={stakeInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "" || Number(value) >= 0) {
+                    setStakeInput(value);
+                  }
+                }}
+                min="0"
+                className="flex-1 rounded border p-2"
+                step="0.1"
+              />
+              <button
+                onClick={stakeTokens}
+                disabled={loading || !stakeInput}
+                className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:bg-gray-400">
+                {loading ? "Staking..." : "Stake"}
+              </button>
+            </div>
           </div>
+
+          {/* Unstaking Controls */}
           {Number(stakedAmount) > 0 && (
-            <button
-              onClick={unstakeTokens}
-              disabled={loading}
-              className="w-full rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:bg-gray-400">
-              {loading ? "Unstaking..." : "Unstake All"}
-            </button>
+            <div className="space-y-2 border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Unstake Tokens
+              </label>
+              <div className="flex gap-4">
+                <input
+                  type="number"
+                  placeholder="Amount to unstake"
+                  value={unstakeInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || Number(value) >= 0) {
+                      setUnstakeInput(value);
+                    }
+                  }}
+                  min="0"
+                  className="flex-1 rounded border p-2"
+                  step="0.1"
+                  max={stakedAmount}
+                />
+                <button
+                  onClick={unstakeTokens}
+                  disabled={loading || !unstakeInput}
+                  className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:bg-gray-400">
+                  {loading ? "Unstaking..." : "Unstake"}
+                </button>
+              </div>
+              <button
+                onClick={async () => {
+                  setUnstakeInput(stakedAmount);
+                  // Wait for state to update
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+                  unstakeTokens();
+                }}
+                disabled={loading}
+                className="mt-2 w-full rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:bg-gray-400">
+                {loading
+                  ? "Unstaking..."
+                  : `Unstake All (${stakedAmount} NEURO)`}
+              </button>
+            </div>
           )}
         </div>
       </div>
