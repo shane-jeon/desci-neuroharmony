@@ -335,7 +335,11 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
 
   const voteForProposal = async (proposalId: number) => {
     if (!web3 || !account) {
-      showModal("Error", "Please connect your wallet first");
+      setModal({
+        isOpen: true,
+        title: "Error",
+        message: "Please connect your wallet first",
+      });
       return;
     }
 
@@ -479,7 +483,11 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
       const finalProposal = await contract.methods.proposals(proposalId).call();
       console.log("Final proposal state:", finalProposal);
 
-      showModal("Success", "Successfully voted on the proposal!");
+      setModal({
+        isOpen: true,
+        title: "Success",
+        message: "Successfully voted on the proposal!",
+      });
 
       // Refresh the data
       await fetchProposals();
@@ -489,7 +497,6 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
 
-      // Try to get more error details
       if (error instanceof Error) {
         console.error("Error details:", {
           message: error.message,
@@ -497,20 +504,22 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
           name: error.name,
         });
 
-        // Check for specific error messages
         if (error.message.includes("insufficient funds")) {
-          showModal(
-            "Voting Failed",
-            "Insufficient funds for gas. Please make sure you have enough ETH to cover the transaction.",
-          );
+          setModal({
+            isOpen: true,
+            title: "Voting Failed",
+            message:
+              "Insufficient funds for gas. Please make sure you have enough ETH to cover the transaction.",
+          });
           return;
         }
       }
 
-      showModal(
-        "Voting Failed",
-        `Failed to vote on proposal: ${errorMessage}. Please try again.`,
-      );
+      setModal({
+        isOpen: true,
+        title: "Voting Failed",
+        message: `Failed to vote on proposal: ${errorMessage}. Please try again.`,
+      });
     } finally {
       setLoadingStates((prev: LoadingStates) => ({ ...prev, voting: false }));
     }
@@ -713,7 +722,11 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
                       Proposer: {proposal.proposer}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Votes: {proposal.votes}
+                      Votes:{" "}
+                      {web3
+                        ? web3.utils.fromWei(proposal.votes.toString(), "ether")
+                        : "0"}{" "}
+                      NEURO
                     </p>
                   </div>
                   <div className="mt-2">
@@ -731,19 +744,31 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
                   {!proposal.isExecuted && (
                     <>
                       <button
-                        onClick={requireWalletConnection(
-                          () => voteForProposal(proposal.id),
-                          "vote on proposals",
-                        )}
+                        onClick={async () => {
+                          if (!account) {
+                            showModal(
+                              "Wallet Required",
+                              "Please connect your wallet to vote on proposals.",
+                            );
+                            return;
+                          }
+                          await voteForProposal(proposal.id);
+                        }}
                         disabled={loadingStates.voting}
                         className="w-full rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:bg-gray-400">
                         {loadingStates.voting ? "Voting..." : "Vote"}
                       </button>
                       <button
-                        onClick={requireWalletConnection(
-                          () => executeProposal(proposal.id),
-                          "execute proposals",
-                        )}
+                        onClick={async () => {
+                          if (!account) {
+                            showModal(
+                              "Wallet Required",
+                              "Please connect your wallet to execute proposals.",
+                            );
+                            return;
+                          }
+                          await executeProposal(proposal.id);
+                        }}
                         disabled={loadingStates.executing}
                         className="w-full rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:bg-gray-400">
                         {loadingStates.executing ? "Executing..." : "Execute"}
