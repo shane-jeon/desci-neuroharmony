@@ -33,7 +33,7 @@ interface DAOGovernanceProps {
 interface LoadingStates {
   fetchingProposals: boolean;
   creatingProposal: boolean;
-  voting: boolean;
+  voting: { [proposalId: number]: boolean };
   executing: boolean;
   updatingVotingPower: boolean;
   fetchingVotingPower: boolean;
@@ -54,7 +54,7 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
   const [loadingStates, setLoadingStates] = useState<LoadingStates>({
     fetchingProposals: false,
     creatingProposal: false,
-    voting: false,
+    voting: {},
     executing: false,
     updatingVotingPower: false,
     fetchingVotingPower: false,
@@ -344,7 +344,11 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
     }
 
     try {
-      setLoadingStates((prev: LoadingStates) => ({ ...prev, voting: true }));
+      // Set loading state for this specific proposal
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        voting: { ...prev.voting, [proposalId]: true },
+      }));
 
       const contract = new web3.eth.Contract(
         neuroGrantDAO.abi as AbiItem[],
@@ -479,6 +483,9 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
       });
       console.log("Vote transaction result:", voteTx);
 
+      // Wait for one block confirmation
+      await web3.eth.getTransactionReceipt(voteTx.transactionHash);
+
       // Check final state
       const finalProposal = await contract.methods.proposals(proposalId).call();
       console.log("Final proposal state:", finalProposal);
@@ -521,7 +528,11 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
         message: `Failed to vote on proposal: ${errorMessage}. Please try again.`,
       });
     } finally {
-      setLoadingStates((prev: LoadingStates) => ({ ...prev, voting: false }));
+      // Clear loading state for this specific proposal
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        voting: { ...prev.voting, [proposalId]: false },
+      }));
     }
   };
 
@@ -754,9 +765,11 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({
                           }
                           await voteForProposal(proposal.id);
                         }}
-                        disabled={loadingStates.voting}
+                        disabled={loadingStates.voting[proposal.id]}
                         className="w-full rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:bg-gray-400">
-                        {loadingStates.voting ? "Voting..." : "Vote"}
+                        {loadingStates.voting[proposal.id]
+                          ? "Voting..."
+                          : "Vote"}
                       </button>
                       <button
                         onClick={async () => {
