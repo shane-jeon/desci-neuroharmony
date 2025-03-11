@@ -13,15 +13,17 @@ interface Project {
   documents: string[];
 }
 
-interface ProjectResponse {
-  title: string;
-  description: string;
-  isCompleted: boolean;
-}
-
 interface ResearchCollaborationProps {
   web3: Web3;
   account: string;
+}
+
+interface ProjectResult {
+  0: string; // title
+  1: string; // description
+  2: string[]; // contributors
+  3: string[]; // documents
+  4: boolean; // isCompleted
 }
 
 const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
@@ -33,7 +35,13 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
   const [newProject, setNewProject] = useState({ title: "", description: "" });
   const [newContributor, setNewContributor] = useState("");
   const [newDocument, setNewDocument] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingStates, setLoadingStates] = useState({
+    fetchingProjects: false,
+    creatingProject: false,
+    addingContributor: false,
+    addingDocument: false,
+    completingProject: false,
+  });
   const [formErrors, setFormErrors] = useState({
     title: "",
     description: "",
@@ -43,43 +51,182 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      setLoadingStates({
+        fetchingProjects: false,
+        creatingProject: false,
+        addingContributor: false,
+        addingDocument: false,
+        completingProject: false,
+      });
+    };
   }, []);
 
   useEffect(() => {
     if (mounted && web3 && account) {
-      fetchProjects();
+      console.log("Attempting to fetch projects with:", {
+        web3: !!web3,
+        account,
+        contractAddress: researchCollaboration.address,
+      });
+      checkNetworkAndFetch();
     }
   }, [mounted, web3, account]);
 
+  const checkNetworkAndFetch = async () => {
+    try {
+      // First check if web3 is properly initialized
+      if (!web3 || !web3.eth) {
+        console.error("Web3 is not properly initialized");
+        setProjects([]);
+        return;
+      }
+
+      // Check if MetaMask is connected
+      const accounts = await web3.eth.getAccounts();
+      if (!accounts || accounts.length === 0) {
+        console.error("No accounts found - please connect MetaMask");
+        setProjects([]);
+        return;
+      }
+
+      // Try to get network ID with error handling
+      let networkId;
+      try {
+        networkId = await web3.eth.net.getId();
+        console.log("Current network ID:", networkId);
+      } catch (networkError: unknown) {
+        if (networkError instanceof Error) {
+          console.error("Error getting network ID:", networkError.message);
+        } else {
+          console.error("Unknown error getting network ID");
+        }
+        setProjects([]);
+        return;
+      }
+
+      // Check if we're on the correct network (e.g., localhost:8545 is network 31337)
+      if (Number(networkId) !== 31337) {
+        console.error("Please connect to the local hardhat network");
+        setProjects([]);
+        return;
+      }
+
+      // Verify RPC connection
+      try {
+        await web3.eth.getBlockNumber();
+      } catch (rpcError) {
+        console.error("RPC connection failed:", rpcError);
+        setProjects([]);
+        return;
+      }
+
+      fetchProjects();
+    } catch (error) {
+      console.error("Error checking network:", error);
+      setProjects([]);
+    }
+  };
+
   const fetchProjects = async () => {
     try {
-      setLoading(true);
+      setLoadingStates((prev) => ({ ...prev, fetchingProjects: true }));
+
+      // Verify contract address
+      if (!researchCollaboration.address) {
+        console.error("Contract address is not defined");
+        setProjects([]);
+        setLoadingStates((prev) => ({ ...prev, fetchingProjects: false }));
+        return;
+      }
+
+      console.log("Contract configuration:", {
+        address: researchCollaboration.address,
+        hasAbi: !!researchCollaboration.abi,
+        networkId: await web3.eth.net.getId(),
+      });
+
+      // Create contract instance
       const contract = new web3.eth.Contract(
         researchCollaboration.abi,
         researchCollaboration.address,
       );
-      const projectCount = await contract.methods.projectCount().call();
-      const count = Number(projectCount);
 
-      const fetchedProjects: Project[] = [];
-      for (let i = 1; i <= count; i++) {
-        const project = (await contract.methods
-          .projects(i)
-          .call()) as ProjectResponse;
-        fetchedProjects.push({
-          id: i,
-          title: project.title,
-          description: project.description,
-          isCompleted: project.isCompleted,
-          contributors: [], // Will be populated in a separate call
-          documents: [], // Will be populated in a separate call
+      // Debug logging
+      console.log(
+        "Contract ABI:",
+        JSON.stringify(researchCollaboration.abi, null, 2),
+      );
+      console.log("Contract methods:", Object.keys(contract.methods));
+
+      // Verify contract is deployed
+      try {
+        const code = await web3.eth.getCode(researchCollaboration.address);
+        console.log("Contract deployment check:", {
+          address: researchCollaboration.address,
+          code: code,
+          isDeployed: code !== "0x",
         });
+
+        if (code === "0x") {
+          console.error(
+            "No contract code at specified address. This usually means either:",
+            [
+              "1. The contract is not deployed",
+              "2. The contract address is incorrect",
+              "3. You're connected to the wrong network",
+            ].join("\n"),
+          );
+          setProjects([]);
+          setLoadingStates((prev) => ({ ...prev, fetchingProjects: false }));
+          return;
+        }
+
+        // Get project count using the public variable getter
+        console.log("Attempting to call projectCount()...");
+        try {
+          const projectCount = await contract.methods.projectCount().call();
+          console.log("Project count:", projectCount);
+          const count = Number(projectCount);
+
+          const fetchedProjects: Project[] = [];
+          if (count > 0) {
+            for (let i = 1; i <= count; i++) {
+              try {
+                // Call the getProject function we added to the contract
+                const result = (await contract.methods
+                  .getProject(i)
+                  .call()) as ProjectResult;
+                console.log(`Project ${i} data:`, result);
+
+                fetchedProjects.push({
+                  id: i,
+                  title: result[0],
+                  description: result[1],
+                  contributors: result[2],
+                  documents: result[3],
+                  isCompleted: result[4],
+                });
+              } catch (error) {
+                console.error(`Error fetching project ${i}:`, error);
+              }
+            }
+          }
+          console.log("Fetched projects:", fetchedProjects);
+          setProjects(fetchedProjects);
+        } catch (error) {
+          console.error("Error interacting with contract:", error);
+          setProjects([]);
+        }
+      } catch (error) {
+        console.error("Error interacting with contract:", error);
+        setProjects([]);
       }
-      setProjects(fetchedProjects);
     } catch (error) {
-      console.error("Error fetching projects:", error);
+      console.error("Error in fetchProjects:", error);
+      setProjects([]);
     } finally {
-      setLoading(false);
+      setLoadingStates((prev) => ({ ...prev, fetchingProjects: false }));
     }
   };
 
@@ -151,7 +298,7 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
     }
 
     try {
-      setLoading(true);
+      setLoadingStates((prev) => ({ ...prev, creatingProject: true }));
       const contract = new web3.eth.Contract(
         researchCollaboration.abi,
         researchCollaboration.address,
@@ -171,7 +318,7 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
     } catch (error) {
       console.error("Error creating project:", error);
     } finally {
-      setLoading(false);
+      setLoadingStates((prev) => ({ ...prev, creatingProject: false }));
     }
   };
 
@@ -181,7 +328,7 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
     }
 
     try {
-      setLoading(true);
+      setLoadingStates((prev) => ({ ...prev, addingContributor: true }));
       const contract = new web3.eth.Contract(
         researchCollaboration.abi,
         researchCollaboration.address,
@@ -201,7 +348,7 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
     } catch (error) {
       console.error("Error adding contributor:", error);
     } finally {
-      setLoading(false);
+      setLoadingStates((prev) => ({ ...prev, addingContributor: false }));
     }
   };
 
@@ -211,7 +358,7 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
     }
 
     try {
-      setLoading(true);
+      setLoadingStates((prev) => ({ ...prev, addingDocument: true }));
       const contract = new web3.eth.Contract(
         researchCollaboration.abi,
         researchCollaboration.address,
@@ -231,13 +378,13 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
     } catch (error) {
       console.error("Error adding document:", error);
     } finally {
-      setLoading(false);
+      setLoadingStates((prev) => ({ ...prev, addingDocument: false }));
     }
   };
 
   const completeProject = async (projectId: number) => {
     try {
-      setLoading(true);
+      setLoadingStates((prev) => ({ ...prev, completingProject: true }));
       const contract = new web3.eth.Contract(
         researchCollaboration.abi,
         researchCollaboration.address,
@@ -248,8 +395,13 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
     } catch (error) {
       console.error("Error completing project:", error);
     } finally {
-      setLoading(false);
+      setLoadingStates((prev) => ({ ...prev, completingProject: false }));
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent form from submitting automatically
+    await createProject();
   };
 
   if (!mounted) {
@@ -268,7 +420,7 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
       {/* Create New Project */}
       <div className="mb-8 rounded-lg bg-white p-6 shadow-lg">
         <h3 className="mb-4 text-xl font-semibold">Create New Project</h3>
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
               Project Title
@@ -316,10 +468,10 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
             )}
           </div>
           <button
-            onClick={createProject}
-            disabled={loading}
+            type="submit"
+            disabled={loadingStates.creatingProject}
             className="w-full rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400">
-            {loading ? (
+            {loadingStates.creatingProject ? (
               <div className="flex items-center justify-center">
                 <svg
                   className="mr-2 h-5 w-5 animate-spin text-white"
@@ -344,13 +496,13 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
               "Create Project"
             )}
           </button>
-        </div>
+        </form>
       </div>
 
       {/* Projects List */}
       <div className="space-y-6">
         <h3 className="text-xl font-semibold">Active Projects</h3>
-        {loading && projects.length === 0 ? (
+        {loadingStates.fetchingProjects ? (
           <div className="flex h-32 items-center justify-center rounded-lg bg-white">
             <div className="text-center">
               <svg
@@ -403,6 +555,7 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
                 {!project.isCompleted && (
                   <button
                     onClick={() => completeProject(project.id)}
+                    disabled={loadingStates.completingProject}
                     className="rounded bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700">
                     Mark Complete
                   </button>
@@ -437,9 +590,9 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
                     </div>
                     <button
                       onClick={() => addContributor(project.id)}
-                      disabled={loading}
+                      disabled={loadingStates.addingContributor}
                       className="rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400">
-                      {loading ? "Adding..." : "Add"}
+                      {loadingStates.addingContributor ? "Adding..." : "Add"}
                     </button>
                   </div>
                 </div>
@@ -473,9 +626,9 @@ const ResearchCollaboration: React.FC<ResearchCollaborationProps> = ({
                     </div>
                     <button
                       onClick={() => addDocument(project.id)}
-                      disabled={loading}
+                      disabled={loadingStates.addingDocument}
                       className="rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400">
-                      {loading ? "Adding..." : "Add"}
+                      {loadingStates.addingDocument ? "Adding..." : "Add"}
                     </button>
                   </div>
                 </div>

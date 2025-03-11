@@ -45,12 +45,13 @@ def standardize_data(file_path, file_format):
     block = reader.read_block()
     return block
 
-# Example usage
-openneuro_data = fetch_openneuro_data("ds000001")
-ieeg_data = fetch_ieeg_data("ieeg_dataset_001")
-g_node_data = fetch_g_node_data("g_node_dataset_001")
+if __name__ == "__main__":
+    # Example usage
+    openneuro_data = fetch_openneuro_data("ds000001")
+    ieeg_data = fetch_ieeg_data("ieeg_dataset_001")
+    g_node_data = fetch_g_node_data("g_node_dataset_001")
 
-# Standardize data
-blackrock_data = standardize_data("data/file1.br", "blackrock")
-neuralynx_data = standardize_data("data/file2.nlx", "neuralynx")
-plexon_data = standardize_data("data/file3.plx", "plexon")
+    # Standardize data
+    blackrock_data = standardize_data("data/file1.br", "blackrock")
+    neuralynx_data = standardize_data("data/file2.nlx", "neuralynx")
+    plexon_data = standardize_data("data/file3.plx", "plexon")

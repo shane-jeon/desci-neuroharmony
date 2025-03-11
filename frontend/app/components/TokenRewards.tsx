@@ -6,6 +6,45 @@ import Web3 from "web3";
 import { AbiItem } from "web3-utils";
 import Modal from "./Modal";
 
+// Add ERC20 ABI for basic token functions
+const ERC20_ABI = [
+  {
+    constant: true,
+    inputs: [{ name: "_owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "balance", type: "uint256" }],
+    type: "function",
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "decimals",
+    outputs: [{ name: "", type: "uint8" }],
+    type: "function",
+  },
+  {
+    constant: true,
+    inputs: [{ name: "account", type: "address" }],
+    name: "stakedTokens",
+    outputs: [{ name: "", type: "uint256" }],
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [{ name: "amount", type: "uint256" }],
+    name: "stake",
+    outputs: [],
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [{ name: "amount", type: "uint256" }],
+    name: "unstake",
+    outputs: [],
+    type: "function",
+  },
+];
+
 interface TokenRewardsProps {
   web3: Web3;
   account: string;
@@ -45,25 +84,124 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
   const fetchBalances = async () => {
     try {
-      const contract = new web3.eth.Contract(
-        neuroToken.abi as AbiItem[],
-        neuroToken.address,
+      console.log("Starting fetchBalances...");
+
+      // First check if web3 is properly initialized
+      if (!web3 || !web3.eth) {
+        console.error("Web3 is not properly initialized");
+        showModal(
+          "Connection Error",
+          "Web3 is not properly initialized. Please ensure MetaMask is installed and working.",
+        );
+        return;
+      }
+      console.log("Web3 initialized successfully");
+
+      // Check if MetaMask is connected
+      const accounts = await web3.eth.getAccounts();
+      console.log("Connected accounts:", accounts);
+
+      if (!accounts || accounts.length === 0) {
+        console.error("No accounts found - please connect MetaMask");
+        showModal(
+          "Connection Error",
+          "No accounts found. Please connect your MetaMask wallet.",
+        );
+        return;
+      }
+
+      // Try to get network ID with error handling
+      let networkId;
+      try {
+        networkId = await web3.eth.net.getId();
+        console.log("Current network ID:", networkId);
+      } catch (networkError) {
+        console.error("Error getting network ID:", networkError);
+        showModal(
+          "Network Error",
+          "Unable to detect network. Please check your MetaMask connection.",
+        );
+        return;
+      }
+
+      // Check if we're on the correct network
+      if (Number(networkId) !== 31337) {
+        console.error("Please connect to the local hardhat network");
+        showModal(
+          "Network Error",
+          "Please connect to the local hardhat network to interact with the DAO.",
+        );
+        return;
+      }
+      console.log("Network check passed");
+
+      // Verify contract address
+      console.log("NEUROToken contract address:", neuroToken.address);
+      if (!neuroToken.address) {
+        console.error("Contract address is not defined");
+        showModal(
+          "Contract Error",
+          "Contract address is not defined. Please check your configuration.",
+        );
+        return;
+      }
+
+      // Create contract instance with combined ABI
+      console.log("Creating contract instance...");
+      const combinedABI = [...ERC20_ABI, ...neuroToken.abi];
+      console.log(
+        "Combined Contract ABI:",
+        JSON.stringify(combinedABI, null, 2),
       );
 
+      const contract = new web3.eth.Contract(
+        combinedABI as AbiItem[],
+        neuroToken.address,
+      );
+      console.log("Contract instance created:", contract);
+
+      // Verify contract is deployed
+      const code = await web3.eth.getCode(neuroToken.address);
+      console.log("Contract code at address:", code);
+
+      if (code === "0x") {
+        console.error("No contract code at specified address");
+        showModal(
+          "Contract Error",
+          "No contract found at the specified address. Please ensure the contract is deployed.",
+        );
+        return;
+      }
+
+      // Fetch balances
+      console.log("Fetching balance for account:", account);
       const balanceWei: string = await contract.methods
         .balanceOf(account)
         .call();
+      console.log("Balance in Wei:", balanceWei);
       const balance = web3.utils.fromWei(balanceWei, "ether");
+      console.log("Balance in Ether:", balance);
       setBalance(balance);
 
+      // Log available methods
+      console.log("Available contract methods:", Object.keys(contract.methods));
+
+      console.log("Fetching staked amount for account:", account);
       const stakedWei: string = await contract.methods
-        .getStakedAmount(account)
+        .stakedTokens(account)
         .call();
+      console.log("Staked amount in Wei:", stakedWei);
       const staked = web3.utils.fromWei(stakedWei, "ether");
+      console.log("Staked amount in Ether:", staked);
       setStakedAmount(staked);
-    } catch (error) {
+    } catch (error: Error | unknown) {
       console.error("Error fetching balances:", error);
-      showModal("Error", "Failed to fetch token balances.");
+      console.error("Error details:", {
+        name: error instanceof Error ? error.name : "Unknown error",
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      showModal("Error", "Failed to fetch token balances. Please try again.");
     }
   };
 
@@ -104,18 +242,54 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
   const stakeTokens = async () => {
     try {
+      // First validate if the amount to stake is more than available balance
+      const stakeAmountWei = web3.utils.toWei(stakeInput, "ether");
+      const currentBalanceWei = web3.utils.toWei(balance, "ether");
+
+      if (BigInt(stakeAmountWei) > BigInt(currentBalanceWei)) {
+        showModal(
+          "Insufficient Balance",
+          `You cannot stake more tokens than your available balance.\n\nAvailable Balance: ${balance} NEURO\nTrying to Stake: ${stakeInput} NEURO`,
+        );
+        return;
+      }
+
       setLoading(true);
-      const contract = new web3.eth.Contract(
-        neuroToken.abi as AbiItem[],
-        neuroToken.address,
-      );
+      const response = await fetch("http://localhost:5000/api/python/stake", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          address: account,
+          amount: stakeAmountWei,
+          private_key: process.env.NEXT_PUBLIC_PRIVATE_KEY,
+        }),
+      });
 
-      const amountWei = web3.utils.toWei(stakeInput, "ether");
-      await contract.methods.stake(amountWei).send({ from: account });
-
-      await fetchBalances();
-      setStakeInput("");
-      showModal("Success", `Successfully staked ${stakeInput} NEURO tokens!`);
+      const result = await response.json();
+      if (result.success) {
+        await fetchBalances();
+        setStakeInput("");
+        showModal("Success", `Successfully staked ${stakeInput} NEURO tokens!`);
+      } else {
+        if (result.errorType === "INSUFFICIENT_BALANCE") {
+          const currentBalance = web3.utils.fromWei(
+            result.error.match(/Current balance: (\d+)/)[1],
+            "ether",
+          );
+          const tryingToStake = web3.utils.fromWei(
+            result.error.match(/Trying to stake: (\d+)/)[1],
+            "ether",
+          );
+          showModal(
+            "Insufficient Balance",
+            `You don't have enough NEURO tokens to stake.\n\nCurrent Balance: ${currentBalance} NEURO\nTrying to Stake: ${tryingToStake} NEURO\n\nPlease reduce the amount or get more tokens.`,
+          );
+        } else {
+          throw new Error(result.error);
+        }
+      }
     } catch (error) {
       console.error("Error staking tokens:", error);
       showModal("Error", "Failed to stake tokens. Please try again.");
@@ -127,15 +301,25 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
   const unstakeTokens = async () => {
     try {
       setLoading(true);
-      const contract = new web3.eth.Contract(
-        neuroToken.abi as AbiItem[],
-        neuroToken.address,
-      );
+      const response = await fetch("http://localhost:5000/api/python/unstake", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          address: account,
+          amount: stakedAmount,
+          private_key: process.env.NEXT_PUBLIC_PRIVATE_KEY,
+        }),
+      });
 
-      await contract.methods.unstake().send({ from: account });
-
-      await fetchBalances();
-      showModal("Success", "Successfully unstaked your NEURO tokens!");
+      const result = await response.json();
+      if (result.success) {
+        await fetchBalances();
+        showModal("Success", "Successfully unstaked your NEURO tokens!");
+      } else {
+        throw new Error(result.error);
+      }
     } catch (error) {
       console.error("Error unstaking tokens:", error);
       showModal("Error", "Failed to unstake tokens. Please try again.");

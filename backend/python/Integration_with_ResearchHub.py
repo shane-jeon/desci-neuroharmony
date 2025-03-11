@@ -17,9 +17,10 @@ def post_to_researchhub(title, content, dataset_link):
     else:
         raise Exception(f"Failed to post to ResearchHub: {response.status_code}")
 
-# Example usage
-post_to_researchhub(
-    title="New EEG Dataset Analysis",
-    content="We analyzed a new EEG dataset using NeuroHarmony.",
-    dataset_link="https://neuroharmony.com/datasets/123"
-)
+if __name__ == "__main__":
+    # Example usage
+    post_to_researchhub(
+        title="New EEG Dataset Analysis",
+        content="We analyzed a new EEG dataset using NeuroHarmony.",
+        dataset_link="https://neuroharmony.com/datasets/123"
+    )

@@ -35,4 +35,9 @@ contract NEUROToken is ERC20, Ownable {
         stakedTokens[msg.sender] -= amount;
         emit Unstaked(msg.sender, amount);
     }
+
+    // Function to get staked amount
+    function getStakedAmount(address user) public view returns (uint256) {
+        return stakedTokens[user];
+    }
 }

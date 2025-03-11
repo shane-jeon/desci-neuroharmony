@@ -6,6 +6,13 @@ NeuroHarmony is a decentralized platform that revolutionizes neuroscience resear
 
 ## ✨ Key Features
 
+### 📊 Data Analysis & Visualization
+
+- EEG data visualization with interactive plots
+- Frequency analysis with band detection (delta, theta, alpha, beta, gamma)
+- Data export functionality in JSON format
+- Real-time data processing and visualization
+
 ### 🤝 Research Collaboration
 
 - Create and manage research projects
@@ -29,6 +36,13 @@ NeuroHarmony is a decentralized platform that revolutionizes neuroscience resear
 
 ## 🏗️ Architecture
 
+### Backend (Python)
+
+- Flask server for data processing and API endpoints
+- Scientific computing with NumPy and SciPy
+- Data visualization using Matplotlib
+- Real-time data analysis capabilities
+
 ### Smart Contracts
 
 - `ResearchCollaboration.sol`: Manages research projects and collaboration
@@ -47,6 +61,7 @@ NeuroHarmony is a decentralized platform that revolutionizes neuroscience resear
 ### Prerequisites
 
 - Node.js (v16 or higher)
+- Python 3.8 or higher
 - npm or yarn
 - MetaMask wallet
 - Hardhat or local blockchain network
@@ -60,15 +75,25 @@ git clone https://github.com/yourusername/neuro-harmony.git
 cd neuro-harmony
 ```
 
-2. Install dependencies
+2. Install frontend dependencies
 
 ```bash
+cd frontend
 npm install
 # or
 yarn install
 ```
 
-3. Set up environment variables
+3. Install Python backend dependencies
+
+```bash
+cd backend/python
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+4. Set up environment variables
 
 ```bash
 cp .env.example .env.local
@@ -79,51 +104,66 @@ Edit `.env.local` with your configuration:
 ```
 NEXT_PUBLIC_RPC_URL=your_rpc_url
 NEXT_PUBLIC_CHAIN_ID=your_chain_id
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 ```
 
-4. Start the development server
+5. Start the Python backend server
 
 ```bash
+cd backend/python
+python app.py
+```
+
+6. Start the frontend development server
+
+```bash
+cd frontend
 npm run dev
 # or
 yarn dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+7. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## 🔧 Smart Contract Development
+## 📡 API Endpoints
 
-### Compile Contracts
+### Data Processing
 
-```bash
-npx hardhat compile
-```
+- `POST /api/python/visualize`: Visualize EEG data
+- `POST /api/python/analyze`: Perform frequency analysis
+- `POST /api/python/export`: Export data in JSON format
 
-### Run Tests
+### Research Collaboration
 
-```bash
-npx hardhat test
-```
+- `POST /api/python/project`: Create new research project
+- `POST /api/python/research-hub`: Integrate with ResearchHub
 
-### Deploy Contracts
+### Token Management
 
-```bash
-npx hardhat run scripts/deploy.js --network <network_name>
-```
+- `POST /api/python/reward`: Distribute token rewards
+- `POST /api/python/stake`: Stake NEURO tokens
+- `POST /api/python/unstake`: Unstake NEURO tokens
+
+### Funding
+
+- `POST /api/python/grant`: Create grant proposals
 
 ## 🎨 Project Structure
 
 ```
 neuro-harmony/
-├── app/                    # Next.js app directory
-│   ├── components/         # React components
-│   ├── lib/               # Utility functions and Web3 setup
-│   └── page.tsx           # Main page component
-├── contracts/             # Smart contracts
-├── public/               # Static assets
-├── styles/              # Global styles
-├── test/                # Contract tests
-└── scripts/             # Deployment scripts
+├── frontend/                # Next.js frontend
+│   ├── app/
+│   │   ├── components/     # React components
+│   │   ├── lib/           # Utility functions and Web3 setup
+│   │   └── page.tsx       # Main page component
+│   └── public/            # Static assets
+├── backend/
+│   ├── python/            # Python backend
+│   │   ├── app.py        # Flask server
+│   │   └── *.py          # Backend modules
+│   └── contracts/        # Smart contracts
+└── scripts/              # Deployment scripts
 ```
 
 ## 🔐 Security
@@ -132,39 +172,19 @@ neuro-harmony/
 - Access control mechanisms for sensitive operations
 - Input validation and error handling
 - Gas optimization
+- Rate limiting on API endpoints
+- Data size restrictions for performance
 
 ## 🛣️ Roadmap
 
+- [x] EEG data visualization and analysis
+- [x] Token rewards system
+- [x] Research collaboration platform
 - [ ] Integration with IPFS for decentralized storage
 - [ ] Enhanced governance mechanisms
 - [ ] Mobile application development
 - [ ] Cross-chain compatibility
 - [ ] AI-powered research matching
-
-### Problem Statement
-
-NeuroHarmony addresses the challenges in neuroscience research collaboration:
-
-- Fragmented research efforts
-- Limited funding transparency
-- Inefficient resource sharing
-- Lack of incentivization
-
-### Solution
-
-Our platform provides:
-
-- Decentralized collaboration tools
-- Transparent funding allocation
-- Token-based incentives
-- Secure document sharing
-
-### Impact
-
-- Accelerates neuroscience research
-- Promotes open science
-- Democratizes research funding
-- Builds global research communities
 
 ## 👥 Team
 

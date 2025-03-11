@@ -43,4 +43,21 @@ contract ResearchCollaboration {
     function completeProject(uint256 _projectId) public {
         projects[_projectId].isCompleted = true;
     }
+
+    function getProject(uint256 _projectId) public view returns (
+        string memory title,
+        string memory description,
+        address[] memory contributors,
+        string[] memory documents,
+        bool isCompleted
+    ) {
+        Project storage project = projects[_projectId];
+        return (
+            project.title,
+            project.description,
+            project.contributors,
+            project.documents,
+            project.isCompleted
+        );
+    }
 }

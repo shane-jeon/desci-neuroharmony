@@ -1,36 +1,224 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NeuroHarmony Frontend
 
-## Getting Started
+## Overview
 
-First, run the development server:
+The NeuroHarmony frontend is built with Next.js 13 and provides a modern, responsive interface for interacting with the NeuroHarmony platform. It features real-time data visualization, blockchain integration, and a comprehensive research collaboration system.
+
+## 🎨 Components
+
+### DataVisualizer (`components/DataVisualizer.tsx`)
+
+Handles EEG data visualization and analysis:
+
+- Real-time signal plotting
+- Frequency analysis with band detection
+- Data export functionality
+- Interactive visualization controls
+
+```typescript
+interface Dataset {
+  id: string;
+  name: string;
+  dataType: "ECG" | "EEG" | "EOG";
+  data?: {
+    times?: number[];
+    signals?: number[][];
+  };
+  metadata: {
+    samplingRate?: number;
+    channels?: number;
+    duration?: number;
+  };
+}
+```
+
+### TokenRewards (`components/TokenRewards.tsx`)
+
+Manages token-related operations:
+
+- Token staking and unstaking
+- Reward distribution
+- Transaction history
+- Balance display
+
+### ResearchCollaboration (`components/ResearchCollaboration.tsx`)
+
+Handles research project management:
+
+- Project creation and editing
+- Team collaboration
+- Resource sharing
+- Progress tracking
+
+### DAOGovernance (`components/DAOGovernance.tsx`)
+
+Manages DAO operations:
+
+- Proposal creation
+- Voting system
+- Fund allocation
+- Governance tracking
+
+### NeuroharmonyFrontend (`components/NeuroharmonyFrontend.tsx`)
+
+Main application interface:
+
+- Navigation
+- Data management
+- User authentication
+- System status
+
+## 🔌 Backend Integration
+
+### Data Processing Endpoints
+
+```typescript
+// Visualize EEG data
+const visualizeData = async (dataset: Dataset) => {
+  const response = await fetch("http://localhost:5000/api/python/visualize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      dataType: dataset.dataType,
+      data: dataset.data,
+      metadata: dataset.metadata,
+    }),
+  });
+  return response.json();
+};
+
+// Perform frequency analysis
+const analyzeData = async (dataset: Dataset) => {
+  const response = await fetch("http://localhost:5000/api/python/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      dataType: dataset.dataType,
+      data: dataset.data,
+      metadata: dataset.metadata,
+    }),
+  });
+  return response.json();
+};
+
+// Export data
+const exportData = async (dataset: Dataset) => {
+  const response = await fetch("http://localhost:5000/api/python/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      dataType: dataset.dataType,
+      data: dataset.data,
+      metadata: dataset.metadata,
+    }),
+  });
+  return response.json();
+};
+```
+
+### Blockchain Integration
+
+The frontend interacts with smart contracts using Web3.js:
+
+- Wallet connection
+- Transaction signing
+- Contract interactions
+- Event listening
+
+## 🚀 Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+2. Set up environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+Configure:
+
+```
+NEXT_PUBLIC_RPC_URL=your_rpc_url
+NEXT_PUBLIC_CHAIN_ID=your_chain_id
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+```
+
+3. Start development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📦 Dependencies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js 13: React framework
+- Web3.js: Ethereum interaction
+- TailwindCSS: Styling
+- React: UI components
+- TypeScript: Type safety
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🎨 Styling
 
-## Learn More
+The application uses TailwindCSS for styling with:
 
-To learn more about Next.js, take a look at the following resources:
+- Responsive design
+- Dark mode support
+- Custom components
+- Consistent theming
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔒 Security
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Input validation
+- Error handling
+- Secure API calls
+- Protected routes
+- Wallet security
 
-## Deploy on Vercel
+## 🧪 Testing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Run tests:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm test
+# or
+yarn test
+```
+
+## 📱 Responsive Design
+
+The UI is optimized for:
+
+- Desktop
+- Tablet
+- Mobile
+- Different screen sizes
+
+## 🔍 State Management
+
+- React hooks
+- Context API
+- Local storage
+- Session management
+
+## 🌐 Network Handling
+
+- Loading states
+- Error handling
+- Retry mechanisms
+- Offline support
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes
+4. Push to the branch
+5. Create a pull request

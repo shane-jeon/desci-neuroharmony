@@ -8,146 +8,37 @@ interface MetaMaskError extends Error {
 }
 
 // Import the contract configuration from the backend config file.
-// Adjust the relative path if necessary.
 import contractsConfig from "../../../backend/config/contracts.config.json";
 
-// Extract the NeuroDataProvenance contract info and cast the ABI appropriately.
+// Extract contract configurations and cast ABIs appropriately
 export const neuroDataProvenance = {
   address: contractsConfig.NeuroDataProvenance.address,
-  abi: contractsConfig.NeuroDataProvenance.abi[0].abi as unknown as AbiItem[],
+  abi: contractsConfig.NeuroDataProvenance.abi as AbiItem[],
 };
 
-// Extract the NeuroGrantDAO contract info and cast the ABI appropriately.
 export const neuroGrantDAO = {
-  address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  abi: [
-    {
-      inputs: [],
-      name: "proposalCount",
-      outputs: [{ type: "uint256", name: "" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [{ type: "uint256", name: "" }],
-      name: "proposals",
-      outputs: [
-        { type: "string", name: "description" },
-        { type: "uint256", name: "budget" },
-        { type: "address", name: "proposer" },
-        { type: "bool", name: "isExecuted" },
-        { type: "uint256", name: "votes" },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [
-        { type: "string", name: "_description" },
-        { type: "uint256", name: "_budget" },
-      ],
-      name: "createProposal",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    {
-      inputs: [{ type: "uint256", name: "_proposalId" }],
-      name: "voteForProposal",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    {
-      inputs: [{ type: "uint256", name: "_proposalId" }],
-      name: "executeProposal",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-  ],
+  address: contractsConfig.NeuroGrantDAO.address,
+  abi: contractsConfig.NeuroGrantDAO.abi as AbiItem[],
 };
 
-// Extract the ResearchFunding contract info and cast the ABI appropriately.
-export const researchFunding = {
-  address: contractsConfig.ResearchFunding.address,
-  abi: contractsConfig.ResearchFunding.abi[0].abi as unknown as AbiItem[],
-};
-
-// Extract the ScienceToken contract info and cast the ABI appropriately.
-export const scienceToken = {
-  address: contractsConfig.ScienceToken.address,
-  abi: contractsConfig.ScienceToken.abi[0].abi as unknown as AbiItem[],
-};
-
-// Extract the NEUROToken contract info and cast the ABI appropriately.
 export const neuroToken = {
   address: contractsConfig.NEUROToken.address,
-  abi: [
-    {
-      inputs: [{ type: "address", name: "account" }],
-      name: "balanceOf",
-      outputs: [{ type: "uint256", name: "" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [{ type: "uint256", name: "amount" }],
-      name: "stake",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "unstake",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    {
-      inputs: [{ type: "address", name: "account" }],
-      name: "getStakedAmount",
-      outputs: [{ type: "uint256", name: "" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      anonymous: false,
-      inputs: [
-        { indexed: true, type: "address", name: "recipient" },
-        { indexed: false, type: "string", name: "rewardType" },
-        { indexed: false, type: "uint256", name: "amount" },
-        { indexed: false, type: "uint256", name: "timestamp" },
-      ],
-      name: "RewardDistributed",
-      type: "event",
-    },
-    {
-      anonymous: false,
-      inputs: [
-        { indexed: true, type: "address", name: "user" },
-        { indexed: false, type: "uint256", name: "amount" },
-      ],
-      name: "Staked",
-      type: "event",
-    },
-    {
-      anonymous: false,
-      inputs: [
-        { indexed: true, type: "address", name: "user" },
-        { indexed: false, type: "uint256", name: "amount" },
-      ],
-      name: "Unstaked",
-      type: "event",
-    },
-  ],
+  abi: contractsConfig.NEUROToken.abi as AbiItem[],
 };
 
-// Extract the ResearchCollaboration contract info and cast the ABI appropriately.
 export const researchCollaboration = {
   address: contractsConfig.ResearchCollaboration.address,
-  abi: contractsConfig.ResearchCollaboration.abi[0].abi as unknown as AbiItem[],
+  abi: contractsConfig.ResearchCollaboration.abi as AbiItem[],
+};
+
+export const researchFunding = {
+  address: contractsConfig.ResearchFunding.address,
+  abi: contractsConfig.ResearchFunding.abi as AbiItem[],
+};
+
+export const scienceToken = {
+  address: contractsConfig.ScienceToken.address,
+  abi: contractsConfig.ScienceToken.abi as AbiItem[],
 };
 
 // Set the backend URL from the environment variable or default to localhost.
