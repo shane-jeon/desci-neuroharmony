@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')  # Set backend before importing pyplot
 import matplotlib.pyplot as plt
 import numpy as np
 import io
@@ -5,70 +7,108 @@ import base64
 import time
 from scipy import signal
 import json
+import traceback
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Function to visualize EEG data
 def visualize_eeg_data(data):
     try:
         start_time = time.time()
-        print("Starting visualization...")
+        logger.info("Starting visualization...")
 
-        # Use Agg backend for faster rendering without display
-        plt.switch_backend('Agg')
+        # Verify data structure
+        if data is None:
+            data = {}
         
-        # Create a figure with optimized settings
-        fig, ax = plt.subplots(figsize=(10, 6), dpi=100)
+        # Create figure
+        try:
+            fig, ax = plt.subplots(figsize=(8, 4), dpi=80)
+        except Exception as e:
+            logger.error(f"Error creating figure: {str(e)}")
+            raise
         
-        # If data is mock data, create a sample visualization
-        if not data or isinstance(data, dict):
-            print("Generating mock data...")
-            # Generate sample data based on metadata if available
-            sampling_rate = data.get('metadata', {}).get('samplingRate', 250)  # Default to 250 Hz
-            duration = min(data.get('metadata', {}).get('duration', 10), 10)  # Limit to 10s for performance
-            channels = min(data.get('metadata', {}).get('channels', 1), 3)  # Limit to 3 channels
-            
-            # Generate time points more efficiently
-            t = np.linspace(0, duration, int(sampling_rate * duration))
-            
-            # Pre-allocate arrays for better performance
-            signals = np.zeros((channels, len(t)))
-            
-            # Generate sample EEG data more efficiently
-            for channel in range(channels):
-                amplitude = np.random.uniform(0.5, 1.0)
-                phase = np.random.uniform(0, 2*np.pi)
-                signals[channel] = amplitude * np.sin(2 * np.pi * 10 * t + phase) + \
-                                 np.random.normal(0, 0.1, len(t)) + channel*2
-                ax.plot(t, signals[channel], label=f'Channel {channel+1}')
-        else:
-            print("Processing real data...")
-            t = np.array(data.get('times', []))
-            signals = np.array(data.get('signals', []))
-            for i, signal in enumerate(signals):
-                ax.plot(t, signal, label=f'Channel {i+1}')
+        try:
+            # If data is mock data, create a sample visualization
+            if not data or isinstance(data, dict):
+                logger.info("Generating mock data...")
+                # Generate sample data based on metadata if available
+                sampling_rate = data.get('metadata', {}).get('samplingRate', 250)  # Default to 250 Hz
+                duration = min(data.get('metadata', {}).get('duration', 5), 5)  # Limit to 5s for better performance
+                channels = min(data.get('metadata', {}).get('channels', 1), 3)  # Limit to 3 channels
+                
+                # Generate time points more efficiently using fewer points
+                num_points = int(sampling_rate * duration / 2)  # Reduce number of points
+                t = np.linspace(0, duration, num_points)
+                
+                # Pre-allocate arrays for better performance
+                signals = np.zeros((channels, len(t)))
+                
+                # Generate sample EEG data more efficiently
+                for channel in range(channels):
+                    amplitude = np.random.uniform(0.5, 1.0)
+                    phase = np.random.uniform(0, 2*np.pi)
+                    signals[channel] = amplitude * np.sin(2 * np.pi * 10 * t + phase) + \
+                                     np.random.normal(0, 0.1, len(t)) + channel*2
+                    # Use faster plotting method
+                    ax.plot(t, signals[channel], '-', linewidth=1, label=f'Channel {channel+1}')
+            else:
+                logger.info("Processing real data...")
+                t = np.array(data.get('times', []))
+                signals = np.array(data.get('signals', []))
+                
+                if len(t) == 0 or len(signals) == 0:
+                    raise ValueError("Empty data arrays provided")
+                
+                # Downsample if too many points
+                if len(t) > 1000:
+                    downsample_factor = len(t) // 1000
+                    t = t[::downsample_factor]
+                    signals = signals[:, ::downsample_factor]
+                
+                for i, signal in enumerate(signals):
+                    ax.plot(t, signal, '-', linewidth=1, label=f'Channel {i+1}')
 
-        ax.set_title("EEG Signal Visualization")
-        ax.set_xlabel("Time (s)")
-        ax.set_ylabel("Amplitude (µV)")
-        ax.legend()
-        ax.grid(True)
+            # Optimize plot settings
+            ax.set_title("EEG Signal Visualization")
+            ax.set_xlabel("Time (s)")
+            ax.set_ylabel("Amplitude (µV)")
+            ax.legend(loc='upper right', fontsize='small')
+            ax.grid(True, alpha=0.3)
 
-        # Save plot to a bytes buffer with optimized settings
-        print("Saving plot...")
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png', bbox_inches='tight', dpi=100)
-        buf.seek(0)
-        plt.close(fig)  # Explicitly close the figure
+            # Optimize figure layout
+            plt.tight_layout()
 
-        # Encode the image to base64
-        image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-        
-        end_time = time.time()
-        print(f"Visualization completed in {end_time - start_time:.2f} seconds")
-        return image_base64
+            # Save plot with optimized settings
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', bbox_inches='tight', dpi=80,
+                       pad_inches=0.1)
+            buf.seek(0)
+            plt.close(fig)  # Explicitly close the figure
+
+            # Encode the image to base64
+            image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+            
+            end_time = time.time()
+            logger.info(f"Visualization completed in {end_time - start_time:.2f} seconds")
+            return image_base64
+
+        except Exception as e:
+            logger.error(f"Error during data processing: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
 
     except Exception as e:
-        print(f"Error in visualization: {str(e)}")
+        logger.error(f"Error in visualization: {str(e)}")
+        logger.error(traceback.format_exc())
         return None
+
+    finally:
+        # Clean up any remaining plots
+        plt.close('all')
 
 def perform_frequency_analysis(data):
     try:
