@@ -1,159 +1,55 @@
 # NeuroHarmony Backend
 
-## Overview
+This directory contains the backend services for the NeuroHarmony platform, including smart contracts and Python services.
 
-The NeuroHarmony backend consists of a Flask server that handles data processing, analysis, and blockchain interactions. It provides RESTful APIs for the frontend to interact with various services.
+## 📁 Structure
 
-## 🔧 Components
-
-### Data Processing and Visualization (`DataParsing_and_Visualization.py`)
-
-Handles EEG data processing and visualization with the following features:
-
-- Real-time EEG signal visualization
-- Frequency analysis with band detection
-- Data export functionality
-- Mock data generation for testing
-
-### Token Rewards System (`Token_Rewards_system_for_Open_Science_Contributions_Backend.py`)
-
-Manages the token reward system:
-
-- Token distribution for contributions
-- Staking mechanism
-- Reward calculation
-- Transaction handling
-
-### Research Collaboration (`Decentralized_Collaboration_Platform_for_Researchers_Backend.py`)
-
-Handles research project management:
-
-- Project creation and updates
-- Collaboration tracking
-- Resource sharing
-- Progress monitoring
-
-### Grant Allocation (`Transparent_Funding_and_Grant_Allocation_Platform_Backend.py`)
-
-Manages research funding:
-
-- Grant proposal creation
-- Fund allocation
-- Progress tracking
-- Reporting
-
-### Data Fetching (`Fetching_Data.py`)
-
-Handles data acquisition:
-
-- OpenNeuro dataset fetching
-- IEEG Portal integration
-- G-Node data access
-- Data format standardization
-
-## 📡 API Endpoints
-
-### Data Processing
-
-#### `POST /api/python/visualize`
-
-Visualizes EEG data.
-
-```json
-{
-  "dataType": "EEG",
-  "data": {
-    "times": number[],
-    "signals": number[][]
-  },
-  "metadata": {
-    "samplingRate": number,
-    "channels": number,
-    "duration": number
-  }
-}
+```
+backend/
+├── contracts/           # Solidity smart contracts
+├── python/             # Python backend services
+│   ├── app.py         # Flask server
+│   ├── requirements.txt
+│   └── *.py           # Service modules
+├── scripts/            # Deployment scripts
+└── config/            # Contract configurations
 ```
 
-#### `POST /api/python/analyze`
+## 🔧 Setup
 
-Performs frequency analysis.
+### Prerequisites
 
-```json
-{
-  "dataType": "EEG",
-  "data": {
-    "times": number[],
-    "signals": number[][]
-  },
-  "metadata": {
-    "samplingRate": number,
-    "channels": number,
-    "duration": number
-  }
-}
-```
+- Node.js v16+
+- Python 3.8+
+- Hardhat
+- Web3.py
 
-#### `POST /api/python/export`
+### Smart Contracts
 
-Exports data in JSON format.
-
-```json
-{
-  "dataType": "EEG",
-  "data": {
-    "times": number[],
-    "signals": number[][]
-  },
-  "metadata": {
-    "samplingRate": number,
-    "channels": number,
-    "duration": number
-  }
-}
-```
-
-### Token Management
-
-#### `POST /api/python/reward`
-
-Distributes token rewards.
-
-```json
-{
-  "address": string,
-  "amount": number,
-  "private_key": string
-}
-```
-
-#### `POST /api/python/stake`
-
-Stakes NEURO tokens.
-
-```json
-{
-  "address": string,
-  "amount": number,
-  "private_key": string
-}
-```
-
-#### `POST /api/python/unstake`
-
-Unstakes NEURO tokens.
-
-```json
-{
-  "address": string,
-  "private_key": string
-}
-```
-
-## 🚀 Setup
-
-1. Create a virtual environment:
+1. Install dependencies:
 
 ```bash
+npm install
+```
+
+2. Start local blockchain:
+
+```bash
+npx hardhat node
+```
+
+3. Deploy contracts:
+
+```bash
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+### Python Backend
+
+1. Create virtual environment:
+
+```bash
+cd python
 python -m venv venv
 source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 ```
@@ -164,58 +60,143 @@ source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Start the server:
+3. Start server:
 
 ```bash
 python app.py
 ```
 
-## 📦 Dependencies
+## 🔌 API Endpoints
 
-- Flask: Web framework
-- Flask-CORS: Cross-origin resource sharing
-- NumPy: Numerical computing
-- SciPy: Scientific computing
-- Matplotlib: Data visualization
-- Web3.py: Ethereum interaction
+### Data Processing
 
-## ⚙️ Configuration
+- `POST /api/python/visualize`: Visualize EEG data
+- `POST /api/python/analyze`: Frequency analysis
+- `POST /api/python/export`: Export data
+- `GET /api/python/fetch-data`: Fetch OpenNeuro data
 
-The server runs on `localhost:5000` by default. Key configurations:
+### Blockchain Integration
 
-- Maximum data duration: 10 seconds
-- Maximum channels: 3
-- Sampling rate: 250 Hz (default)
+- `POST /api/python/project`: Create research project
+- `POST /api/python/grant`: Create grant proposal
+- `POST /api/python/reward`: Distribute rewards
+- `POST /api/python/stake`: Stake tokens
+- `POST /api/python/unstake`: Unstake tokens
+- `POST /api/python/mint`: Mint tokens (dev only)
 
-## 🔒 Security Measures
+## 🔐 Security
 
-- Input validation for all endpoints
-- Data size restrictions
+- Input validation on all endpoints
 - Rate limiting
-- Error handling
-- Secure blockchain transactions
+- Data size restrictions
+- Secure transaction handling
+- Error logging
+- Access control
+
+## 📝 Smart Contracts
+
+### ResearchCollaboration.sol
+
+- Project creation and management
+- Collaboration tracking
+- Access control
+
+### NeuroGrantDAO.sol
+
+- Proposal creation and voting
+- Grant distribution
+- Governance mechanisms
+
+### NEUROToken.sol
+
+- ERC-20 implementation
+- Staking functionality
+- Reward distribution
+
+### NeuroDataProvenance.sol
+
+- Data tracking
+- Provenance verification
+
+## 🐍 Python Services
+
+### Token Management
+
+- Web3.py integration
+- Transaction handling
+- Balance checking
+- Staking operations
+
+### Data Processing
+
+- EEG data visualization
+- Frequency analysis
+- Data export
+- Size optimization
+
+### Research Integration
+
+- ResearchHub connection
+- Project management
+- Grant handling
+
+## 🔍 Logging
+
+Logs are stored in the standard output and can be redirected as needed. The logging format includes:
+
+- Timestamp
+- Log level
+- Module name
+- Message
+
+## 🚀 Development
+
+1. Make sure contracts are deployed
+2. Update contract addresses in `config/contracts.config.json`
+3. Start Python server
+4. Test endpoints with provided Postman collection
+
+## 📚 Documentation
+
+- Smart contract documentation in `contracts/docs/`
+- API documentation in OpenAPI format
+- Python module docstrings
+
+## ⚠️ Error Handling
+
+All endpoints follow a consistent error response format:
+
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "errorType": "ERROR_TYPE"
+}
+```
 
 ## 🧪 Testing
 
-Run tests using:
+### Smart Contracts
+
+```bash
+npx hardhat test
+```
+
+### Python Backend
 
 ```bash
 python -m pytest tests/
 ```
 
-## 🔍 Monitoring
+## 🔄 Recent Updates
 
-The server logs important events:
+- Integrated Web3.py with smart contracts
+- Added token staking functionality
+- Implemented proper error handling
+- Added development environment tools
+- Enhanced API documentation
+- Optimized data processing
 
-- API requests and responses
-- Processing times
-- Error messages
-- Blockchain transactions
+## 📋 Requirements
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit changes
-4. Push to the branch
-5. Create a pull request
+See `requirements.txt` for Python dependencies and `package.json` for Node.js dependencies.
