@@ -8,6 +8,15 @@ from flask_cors import CORS
 import time
 import traceback
 import logging
+import asyncio
+import nest_asyncio
+import os
+import json
+from web3.datastructures import AttributeDict
+from hexbytes import HexBytes
+from Token_Rewards_system_for_Open_Science_Contributions_Backend import (
+    stake_tokens, unstake_tokens, reward_contributor, mint_tokens
+)
 
 # Configure logging
 logging.basicConfig(
@@ -16,8 +25,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Enable nested event loops
+nest_asyncio.apply()
+
 app = Flask(__name__)
-CORS(app)
+# Configure CORS with additional options
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
+def convert_to_json_serializable(obj):
+    """Convert Web3 objects to JSON-serializable format."""
+    if isinstance(obj, HexBytes):
+        return obj.hex()
+    elif isinstance(obj, AttributeDict):
+        return {key: convert_to_json_serializable(value) for key, value in dict(obj).items()}
+    elif isinstance(obj, (tuple, list)):
+        return [convert_to_json_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: convert_to_json_serializable(value) for key, value in obj.items()}
+    return obj
+
+def run_in_event_loop(coro):
+    """
+    Helper function to run coroutines in the current thread's event loop.
+    Creates a new event loop if one doesn't exist.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 @app.route('/api/python/fetch-data', methods=['GET'])
 def fetch_data():
@@ -71,77 +114,139 @@ def research_hub_integration():
         logger.error(f"ResearchHub integration error: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/python/reward', methods=['POST'])
-def reward_contributor():
-    """Distribute NEURO token rewards to contributors."""
+@app.route('/reward', methods=['POST'])
+def reward_contributor_endpoint():
     try:
-        import Token_Rewards_system_for_Open_Science_Contributions_Backend as TokenRewards
-        data = request.json
-        result = TokenRewards.reward_contributor(
-            contributor_address=data.get('address'),
-            amount=data.get('amount'),
-            private_key=data.get('private_key')
-        )
-        return jsonify({"success": True, "transaction": result})
-    except Exception as e:
-        logger.error(f"Reward distribution error: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route('/api/python/stake', methods=['POST'])
-def stake_tokens():
-    """Stake NEURO tokens for governance participation."""
-    try:
-        import Token_Rewards_system_for_Open_Science_Contributions_Backend as TokenRewards
+        logger.info("Received reward request")
         data = request.get_json()
+        logger.info(f"Request data: {data}")
         
-        if not data:
-            return jsonify({"success": False, "error": "No data provided"}), 400
+        required_fields = ['address', 'amount', 'privateKey']
+        if not all(field in data for field in required_fields):
+            logger.error("Missing required fields in request")
+            return jsonify({'error': 'Missing required fields'}), 400
             
-        address = data.get('address')
-        amount = data.get('amount')
-        private_key = data.get('private_key')
+        # Create a new event loop for this request
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         
-        if not all([address, amount, private_key]):
-            missing = [field for field, value in 
-                      {'address': address, 'amount': amount, 'private_key': private_key}.items() 
-                      if not value]
-            return jsonify({
-                "success": False, 
-                "error": f"Missing required parameters: {', '.join(missing)}"
-            }), 400
+        try:
+            receipt = reward_contributor(
+                contributor_address=data['address'],
+                amount=data['amount'],
+                private_key=data['privateKey']
+            )
+            logger.info(f"Reward successful. Receipt: {receipt}")
+            # Convert receipt to JSON-serializable format
+            serialized_receipt = convert_to_json_serializable(receipt)
+            return jsonify({'success': True, 'receipt': serialized_receipt}), 200
             
-        result = TokenRewards.stake_tokens(
-            address=address,
-            amount=amount,
-            private_key=private_key
-        )
-        return jsonify({"success": True, "transaction": result})
-    except ValueError as e:
-        if "Insufficient balance" in str(e):
-            return jsonify({
-                "success": False,
-                "error": str(e),
-                "errorType": "INSUFFICIENT_BALANCE"
-            }), 400
+        except ValueError as e:
+            logger.error(f"Validation error in reward_contributor: {str(e)}")
+            return jsonify({'error': str(e)}), 400
+            
+        except Exception as e:
+            logger.error(f"Error in reward_contributor: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+            
+        finally:
+            loop.close()
+            
     except Exception as e:
-        logger.error(f"Staking error: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        logger.error(f"Unexpected error in reward endpoint: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/python/unstake', methods=['POST'])
-def unstake_tokens():
-    """Unstake previously staked NEURO tokens."""
+@app.route('/api/python/stake', methods=['POST', 'OPTIONS'])
+def stake_tokens_endpoint():
+    # Handle preflight requests
+    if request.method == 'OPTIONS':
+        return '', 204
+        
     try:
-        import Token_Rewards_system_for_Open_Science_Contributions_Backend as TokenRewards
-        data = request.json
-        result = TokenRewards.unstake_tokens(
-            address=data.get('address'),
-            amount=data.get('amount'),
-            private_key=data.get('private_key')
-        )
-        return jsonify({"success": True, "transaction": result})
+        logger.info("Received stake request")
+        data = request.get_json()
+        logger.info(f"Request data: {data}")
+        
+        required_fields = ['address', 'amount', 'privateKey']
+        if not all(field in data for field in required_fields):
+            logger.error("Missing required fields in request")
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        # Create a new event loop for this request
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            receipt = stake_tokens(
+                address=data['address'],
+                amount=data['amount'],
+                private_key=data['privateKey']
+            )
+            logger.info(f"Stake successful. Receipt: {receipt}")
+            # Convert receipt to JSON-serializable format
+            serialized_receipt = convert_to_json_serializable(receipt)
+            return jsonify({'success': True, 'receipt': serialized_receipt}), 200
+            
+        except ValueError as e:
+            logger.error(f"Validation error in stake_tokens: {str(e)}")
+            return jsonify({'error': str(e)}), 400
+            
+        except Exception as e:
+            logger.error(f"Error in stake_tokens: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+            
+        finally:
+            loop.close()
+            
     except Exception as e:
-        logger.error(f"Unstaking error: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        logger.error(f"Unexpected error in stake endpoint: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/python/unstake', methods=['POST', 'OPTIONS'])
+def unstake_tokens_endpoint():
+    # Handle preflight requests
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        logger.info("Received unstake request")
+        data = request.get_json()
+        logger.info(f"Request data: {data}")
+        
+        required_fields = ['address', 'amount', 'privateKey']
+        if not all(field in data for field in required_fields):
+            logger.error("Missing required fields in request")
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        # Create a new event loop for this request
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            receipt = unstake_tokens(
+                address=data['address'],
+                amount=data['amount'],
+                private_key=data['privateKey']
+            )
+            logger.info(f"Unstake successful. Receipt: {receipt}")
+            # Convert receipt to JSON-serializable format
+            serialized_receipt = convert_to_json_serializable(receipt)
+            return jsonify({'success': True, 'receipt': serialized_receipt}), 200
+            
+        except ValueError as e:
+            logger.error(f"Validation error in unstake_tokens: {str(e)}")
+            return jsonify({'error': str(e)}), 400
+            
+        except Exception as e:
+            logger.error(f"Error in unstake_tokens: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+            
+        finally:
+            loop.close()
+            
+    except Exception as e:
+        logger.error(f"Unexpected error in unstake endpoint: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/python/grant', methods=['POST'])
 def create_grant():
@@ -232,35 +337,44 @@ def export_data():
         logger.error(f"Export error: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/python/mint', methods=['POST'])
-def mint_tokens():
-    """Mint NEURO tokens (development environment only)."""
+@app.route('/mint', methods=['POST'])
+def mint_tokens_endpoint():
     try:
+        logger.info("Received mint request")
         data = request.get_json()
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
+        logger.info(f"Request data: {data}")
+        
+        required_fields = ['address', 'amount']
+        if not all(field in data for field in required_fields):
+            logger.error("Missing required fields in request")
+            return jsonify({'error': 'Missing required fields'}), 400
             
-        address = data.get('address')
-        amount = data.get('amount')
+        # Create a new event loop for this request
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         
-        if not address or not amount:
-            return jsonify({"error": "Missing required parameters"}), 400
+        try:
+            receipt = mint_tokens(
+                address=data['address'],
+                amount=data['amount']
+            )
+            logger.info(f"Mint successful. Receipt: {receipt}")
+            return jsonify({'success': True, 'receipt': dict(receipt)}), 200
             
-        import Token_Rewards_system_for_Open_Science_Contributions_Backend as TokenRewards
-        result = TokenRewards.mint_tokens(address, amount)
-        
-        return jsonify({
-            "success": True,
-            "message": "Tokens minted successfully",
-            "transaction": result
-        }), 200
-        
+        except ValueError as e:
+            logger.error(f"Validation error in mint_tokens: {str(e)}")
+            return jsonify({'error': str(e)}), 400
+            
+        except Exception as e:
+            logger.error(f"Error in mint_tokens: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+            
+        finally:
+            loop.close()
+            
     except Exception as e:
-        logger.error(f"Minting error: {str(e)}")
-        return jsonify({
-            "error": str(e),
-            "type": str(type(e))
-        }), 500
+        logger.error(f"Unexpected error in mint endpoint: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == "__main__":
     app.run(port=5000, debug=False) 

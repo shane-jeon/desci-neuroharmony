@@ -5,6 +5,7 @@ import { neuroToken } from "../lib/web3";
 import Web3 from "web3";
 import { AbiItem } from "web3-utils";
 import Modal from "./Modal";
+import { EventLog } from "web3-types";
 
 // Add ERC20 ABI for basic token functions
 const ERC20_ABI = [
@@ -52,18 +53,51 @@ interface TokenRewardsProps {
 
 interface RewardActivity {
   id: number;
-  type: "dataset_upload" | "proposal_creation" | "vote" | "stake";
+  type: "staked" | "unstaked" | "rewarded";
   amount: string;
   timestamp: number;
 }
 
-interface ContractEvent {
-  returnValues: {
-    rewardType: RewardActivity["type"];
-    amount: string;
-    timestamp: string;
-  };
+interface EventReturnValues extends Record<string, unknown> {
+  amount: string;
+  user?: string;
 }
+
+interface NEUROEventLog extends EventLog {
+  event: string;
+  returnValues: EventReturnValues;
+}
+
+// Update the isEventLog type guard to be more specific
+function isNEUROEventLog(event: unknown): event is NEUROEventLog {
+  if (!event || typeof event !== "object") return false;
+
+  const candidate = event as Record<string, unknown>;
+  const returnValues = candidate.returnValues as EventReturnValues | undefined;
+
+  return (
+    typeof candidate.event === "string" &&
+    typeof candidate.blockNumber === "number" &&
+    typeof candidate.address === "string" &&
+    Array.isArray(candidate.topics) &&
+    typeof candidate.data === "string" &&
+    returnValues !== null &&
+    typeof returnValues === "object" &&
+    typeof returnValues.amount === "string" &&
+    ["Staked", "Unstaked", "Rewarded"].includes(candidate.event)
+  );
+}
+
+// Update the event processing function
+const processEvent = (event: NEUROEventLog): RewardActivity => {
+  const eventType = event.event.toLowerCase() as RewardActivity["type"];
+  return {
+    id: Number(event.blockNumber),
+    type: eventType,
+    amount: event.returnValues.amount,
+    timestamp: Date.now(), // You might want to get this from the block timestamp
+  };
+};
 
 const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
   const [balance, setBalance] = useState<string>("0");
@@ -76,6 +110,10 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
     title: "",
     message: "",
   });
+
+  const EVENTS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalEvents, setTotalEvents] = useState<number>(0);
 
   useEffect(() => {
     fetchBalances();
@@ -207,92 +245,107 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
   const fetchRewardHistory = async () => {
     try {
+      console.log("=== Fetching reward history ===");
+
       const contract = new web3.eth.Contract(
-        neuroToken.abi as AbiItem[],
+        [...ERC20_ABI, ...neuroToken.abi] as AbiItem[],
         neuroToken.address,
       );
 
-      const events = (await contract.getPastEvents("allEvents", {
-        filter: { recipient: account },
-        fromBlock: 0,
-        toBlock: "latest",
-      })) as unknown as ContractEvent[];
+      // Calculate block range for pagination
+      const latestBlock = await web3.eth.getBlockNumber();
+      const fromBlock = Math.max(
+        0,
+        Number(latestBlock) - currentPage * EVENTS_PER_PAGE,
+      );
+      const toBlock = Number(latestBlock) - (currentPage - 1) * EVENTS_PER_PAGE;
 
-      const history: RewardActivity[] = events
-        .filter(
-          (event) =>
-            event.returnValues &&
-            event.returnValues.rewardType &&
-            event.returnValues.amount &&
-            event.returnValues.timestamp,
-        )
-        .map((event, index) => ({
-          id: index + 1,
-          type: event.returnValues.rewardType,
-          amount: web3.utils.fromWei(event.returnValues.amount, "ether"),
-          timestamp: parseInt(event.returnValues.timestamp),
-        }));
+      console.log(`Fetching events from block ${fromBlock} to ${toBlock}`);
 
-      setRewardHistory(history);
+      // Get all events
+      const events = await contract.getPastEvents("allEvents", {
+        fromBlock,
+        toBlock,
+      });
+
+      // Process events
+      const activities = events
+        .filter((event): event is NEUROEventLog => isNEUROEventLog(event))
+        .map(processEvent)
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      setRewardHistory(activities);
+      setTotalEvents(events.length);
     } catch (error) {
       console.error("Error fetching reward history:", error);
-      showModal("Error", "Failed to fetch reward history.");
+      showModal("Error", "Failed to fetch reward history. Please try again.");
     }
   };
 
   const stakeTokens = async () => {
     try {
-      // First validate if the amount to stake is more than available balance
-      const stakeAmountWei = web3.utils.toWei(stakeInput, "ether");
-      const currentBalanceWei = web3.utils.toWei(balance, "ether");
+      console.log("=== Starting stakeTokens function ===");
+      console.log("Account:", account);
+      console.log("Stake Input:", stakeInput);
 
-      if (BigInt(stakeAmountWei) > BigInt(currentBalanceWei)) {
+      // Input validation
+      if (!stakeInput || isNaN(Number(stakeInput)) || Number(stakeInput) <= 0) {
+        showModal(
+          "Validation Error",
+          "Please enter a valid positive number of tokens to stake.",
+        );
+        return;
+      }
+
+      // Convert input to Wei for comparison
+      const stakeAmountWei = web3.utils.toWei(stakeInput, "ether");
+      const balanceWei = web3.utils.toWei(balance, "ether");
+
+      // Check if stake amount is more than available balance
+      if (BigInt(stakeAmountWei) > BigInt(balanceWei)) {
         showModal(
           "Insufficient Balance",
-          `You cannot stake more tokens than your available balance.\n\nAvailable Balance: ${balance} NEURO\nTrying to Stake: ${stakeInput} NEURO`,
+          `You cannot stake more than your available balance of ${balance} NEURO tokens.`,
         );
         return;
       }
 
       setLoading(true);
-      const response = await fetch("http://localhost:5000/api/python/stake", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          address: account,
-          amount: stakeAmountWei,
-          private_key: process.env.NEXT_PUBLIC_PRIVATE_KEY,
-        }),
+
+      // Create contract instance
+      const contract = new web3.eth.Contract(
+        [...ERC20_ABI, ...neuroToken.abi] as AbiItem[],
+        neuroToken.address,
+      );
+
+      // Estimate gas first
+      const gasEstimate = await contract.methods
+        .stake(stakeAmountWei)
+        .estimateGas({ from: account });
+
+      // Send transaction with estimated gas (add 20% buffer)
+      const gasLimit = Math.floor(Number(gasEstimate) * 1.2).toString();
+
+      const transaction = await contract.methods.stake(stakeAmountWei).send({
+        from: account,
+        gas: gasLimit,
       });
 
-      const result = await response.json();
-      if (result.success) {
-        await fetchBalances();
-        setStakeInput("");
-        showModal("Success", `Successfully staked ${stakeInput} NEURO tokens!`);
-      } else {
-        if (result.errorType === "INSUFFICIENT_BALANCE") {
-          const currentBalance = web3.utils.fromWei(
-            result.error.match(/Current balance: (\d+)/)[1],
-            "ether",
-          );
-          const tryingToStake = web3.utils.fromWei(
-            result.error.match(/Trying to stake: (\d+)/)[1],
-            "ether",
-          );
-          showModal(
-            "Insufficient Balance",
-            `You don't have enough NEURO tokens to stake.\n\nCurrent Balance: ${currentBalance} NEURO\nTrying to Stake: ${tryingToStake} NEURO\n\nPlease reduce the amount or get more tokens.`,
-          );
-        } else {
-          throw new Error(result.error);
-        }
-      }
-    } catch (error) {
-      console.error("Error staking tokens:", error);
-      showModal("Error", "Failed to stake tokens. Please try again.");
+      console.log("Stake transaction successful:", transaction);
+      showModal("Success", `Successfully staked ${stakeInput} NEURO tokens.`);
+
+      // Clear input and refresh balances
+      setStakeInput("");
+      await fetchBalances();
+      await fetchRewardHistory();
+    } catch (error: unknown) {
+      console.error("Error in stakeTokens:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      showModal(
+        "Transaction Failed",
+        `Failed to stake tokens: ${errorMessage}. Please try again.`,
+      );
     } finally {
       setLoading(false);
     }
@@ -300,29 +353,70 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
   const unstakeTokens = async () => {
     try {
-      setLoading(true);
-      const response = await fetch("http://localhost:5000/api/python/unstake", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          address: account,
-          amount: stakedAmount,
-          private_key: process.env.NEXT_PUBLIC_PRIVATE_KEY,
-        }),
-      });
+      console.log("=== Starting unstakeTokens function ===");
+      console.log("Account:", account);
+      console.log("Unstake Input:", stakeInput);
 
-      const result = await response.json();
-      if (result.success) {
-        await fetchBalances();
-        showModal("Success", "Successfully unstaked your NEURO tokens!");
-      } else {
-        throw new Error(result.error);
+      // Input validation
+      if (!stakeInput || isNaN(Number(stakeInput)) || Number(stakeInput) <= 0) {
+        showModal(
+          "Validation Error",
+          "Please enter a valid positive number of tokens to unstake.",
+        );
+        return;
       }
-    } catch (error) {
-      console.error("Error unstaking tokens:", error);
-      showModal("Error", "Failed to unstake tokens. Please try again.");
+
+      // Convert input to Wei for comparison
+      const unstakeAmountWei = web3.utils.toWei(stakeInput, "ether");
+      const stakedWei = web3.utils.toWei(stakedAmount, "ether");
+
+      // Check if unstake amount is more than staked balance
+      if (BigInt(unstakeAmountWei) > BigInt(stakedWei)) {
+        showModal(
+          "Insufficient Staked Balance",
+          `You cannot unstake more than your staked balance of ${stakedAmount} NEURO tokens.`,
+        );
+        return;
+      }
+
+      setLoading(true);
+
+      // Create contract instance
+      const contract = new web3.eth.Contract(
+        [...ERC20_ABI, ...neuroToken.abi] as AbiItem[],
+        neuroToken.address,
+      );
+
+      // Estimate gas first
+      const gasEstimate = await contract.methods
+        .unstake(unstakeAmountWei)
+        .estimateGas({ from: account });
+
+      // Send transaction with estimated gas (add 20% buffer)
+      const gasLimit = Math.floor(Number(gasEstimate) * 1.2).toString();
+
+      const transaction = await contract.methods
+        .unstake(unstakeAmountWei)
+        .send({
+          from: account,
+          gas: gasLimit,
+        });
+
+      console.log("Unstake transaction successful:", transaction);
+      showModal("Success", `Successfully unstaked ${stakeInput} NEURO tokens.`);
+
+      // Clear input and refresh balances
+      setStakeInput("");
+      await fetchBalances();
+      await fetchRewardHistory();
+    } catch (error: unknown) {
+      console.error("Error in unstakeTokens:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      showModal(
+        "Transaction Failed",
+        `Failed to unstake tokens: ${errorMessage}. Please try again.`,
+      );
     } finally {
       setLoading(false);
     }
@@ -340,12 +434,8 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
     setModal((prev) => ({ ...prev, isOpen: false }));
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString();
-  };
-
   return (
-    <div className="p-6">
+    <div className="rounded-lg bg-white p-6 shadow-md">
       <h2 className="mb-6 text-2xl font-bold">NEURO Token & Rewards</h2>
 
       {/* Token Balances */}
@@ -394,26 +484,35 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
       </div>
 
       {/* Reward History */}
-      <div className="rounded-lg bg-white p-4 shadow">
+      <div className="mt-8">
         <h3 className="mb-4 text-xl font-semibold">Reward History</h3>
-        <div className="space-y-2">
+        <div className="space-y-4">
           {rewardHistory.map((activity) => (
             <div
               key={activity.id}
-              className="flex items-center justify-between rounded bg-gray-50 p-3">
+              className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
               <div>
                 <p className="font-medium">
-                  {activity.type
-                    .split("_")
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(" ")}
+                  {activity.type === "rewarded"
+                    ? "Reward Received"
+                    : activity.type === "staked"
+                    ? "Tokens Staked"
+                    : "Tokens Unstaked"}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {formatDate(activity.timestamp)}
+                  {new Date(activity.timestamp * 1000).toLocaleString()}
                 </p>
               </div>
-              <p className="font-semibold text-green-600">
-                +{activity.amount} NEURO
+              <p
+                className={`font-medium ${
+                  activity.type === "unstaked"
+                    ? "text-red-600"
+                    : activity.type === "staked"
+                    ? "text-purple-600"
+                    : "text-green-600"
+                }`}>
+                {activity.type === "unstaked" ? "-" : "+"}
+                {activity.amount} NEURO
               </p>
             </div>
           ))}
@@ -421,6 +520,27 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
             <p className="text-center text-gray-500">No reward history yet</p>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalEvents > EVENTS_PER_PAGE && (
+          <div className="mt-4 flex justify-center space-x-4">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              Previous
+            </button>
+            <span className="px-4 py-2 text-sm font-medium text-gray-700">
+              Page {currentPage} of {Math.ceil(totalEvents / EVENTS_PER_PAGE)}
+            </span>
+            <button
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+              disabled={currentPage >= Math.ceil(totalEvents / EVENTS_PER_PAGE)}
+              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       <Modal

@@ -6,11 +6,21 @@ Handles token staking, unstaking, and reward distribution for research contribut
 import os
 import json
 import traceback
+import asyncio
 from web3 import Web3
+from web3.providers.async_base import AsyncBaseProvider
 
 def get_web3():
     """Initialize and return a Web3 instance connected to the local Hardhat node."""
-    return Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
+    provider = Web3.HTTPProvider("http://127.0.0.1:8545")
+    if isinstance(provider, AsyncBaseProvider):
+        # If using an async provider, ensure we have an event loop
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    return Web3(provider)
 
 def get_contract(web3):
     """
@@ -26,17 +36,45 @@ def get_contract(web3):
         Exception: If contract configuration cannot be loaded
     """
     try:
+        print("\n=== Loading contract configuration ===")
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'contracts.config.json')
+        print(f"Looking for config file at: {config_path}")
+        
         with open(config_path) as f:
             config = json.load(f)
+            print("Successfully loaded config file")
+            print(f"Available contracts: {list(config.keys())}")
         
+        print("\n=== Processing NEUROToken contract ===")
         contract_config = config['NEUROToken']
-        contract = web3.eth.contract(
-            address=web3.to_checksum_address(contract_config['address']),
-            abi=contract_config['abi']
-        )
-        return contract
+        print(f"Contract address: {contract_config['address']}")
+        print(f"Raw ABI type: {type(contract_config['abi'])}")
+        print(f"Raw ABI length: {len(contract_config['abi'])}")
+        
+        print("\n=== Creating Contract Instance ===")
+        address = web3.to_checksum_address(contract_config['address'])
+        print(f"Checksummed address: {address}")
+        
+        try:
+            contract = web3.eth.contract(
+                address=address,
+                abi=contract_config['abi']
+            )
+            print("Contract instance created successfully")
+            print(f"Available contract functions: {[fn for fn in dir(contract.functions) if not fn.startswith('_')]}")
+            return contract
+        except Exception as e:
+            print(f"\n=== Contract Creation Failed ===")
+            print(f"Error creating contract: {str(e)}")
+            raise
+            
     except Exception as e:
+        print(f"\n=== Contract Creation Error ===")
+        print(f"Error type: {type(e)}")
+        print(f"Error message: {str(e)}")
+        print(f"Error args: {e.args}")
+        print(f"Error location: {traceback.extract_tb(e.__traceback__)[-1]}")
+        print(f"Full stack trace:\n{traceback.format_exc()}")
         raise Exception(f"Failed to load contract configuration: {str(e)}")
 
 def reward_contributor(contributor_address, amount, private_key):
@@ -84,31 +122,122 @@ def stake_tokens(address, amount, private_key):
         Exception: For other transaction failures
     """
     try:
+        print("\n=== Starting stake_tokens function ===")
+        print(f"Input parameters:")
+        print(f"- Address: {address}")
+        print(f"- Amount: {amount}")
+        print(f"- Amount type: {type(amount)}")
+        
+        print("\n=== Initializing Web3 ===")
         web3 = get_web3()
+        print(f"Web3 connection established")
+        print(f"Connected to network: {web3.net.version}")
+        print(f"Latest block number: {web3.eth.block_number}")
+        
         if isinstance(amount, str):
+            print(f"\nConverting amount from string to int")
+            print(f"Original amount: {amount}")
             amount = int(amount)
+            print(f"Converted amount: {amount}")
         
+        print("\n=== Setting up Account ===")
         account = web3.eth.account.from_key(private_key)
-        contract = get_contract(web3)
+        print(f"Account address: {account.address}")
+        print(f"Account matches input address: {account.address.lower() == address.lower()}")
         
-        balance = contract.functions.balanceOf(account.address).call()
+        print("\n=== Getting Contract Instance ===")
+        contract = get_contract(web3)
+        print(f"Contract address: {contract.address}")
+        print(f"Available contract functions: {[fn for fn in dir(contract.functions) if not fn.startswith('_')]}")
+        
+        print("\n=== Checking Balance ===")
+        try:
+            balance = contract.functions.balanceOf(account.address).call()
+            print(f"Balance check successful")
+            print(f"Current balance: {balance}")
+            print(f"Attempting to stake: {amount}")
+            print(f"Balance sufficient: {balance >= amount}")
+        except Exception as e:
+            print(f"Error checking balance: {str(e)}")
+            print(f"Balance check error type: {type(e)}")
+            print(f"Balance check error args: {e.args}")
+            raise
+        
         if balance < amount:
+            print(f"\nInsufficient balance detected")
             raise ValueError(f"Insufficient balance. Current balance: {balance}, Trying to stake: {amount}")
         
+        print("\n=== Building Transaction ===")
         nonce = web3.eth.get_transaction_count(account.address)
-        transaction = contract.functions.stake(amount).build_transaction({
-            'chainId': 31337,
-            'gas': 200000,
-            'gasPrice': web3.eth.gas_price,
-            'nonce': nonce,
-            'from': account.address
-        })
+        print(f"Nonce: {nonce}")
+        gas_price = web3.eth.gas_price
+        print(f"Gas price: {gas_price}")
         
-        signed_txn = account.sign_transaction(transaction)
-        tx_hash = web3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        return web3.eth.wait_for_transaction_receipt(tx_hash)
+        print("\n=== Creating Stake Transaction ===")
+        try:
+            # Only pass amount, contract will use msg.sender for the address
+            transaction = contract.functions.stake(amount).build_transaction({
+                'chainId': 31337,
+                'gas': 200000,
+                'gasPrice': gas_price,
+                'nonce': nonce,
+                'from': account.address
+            })
+            print(f"Transaction built successfully:")
+            print(f"- To: {transaction.get('to')}")
+            print(f"- From: {transaction.get('from')}")
+            print(f"- Value: {transaction.get('value')}")
+            print(f"- Gas: {transaction.get('gas')}")
+        except Exception as e:
+            print(f"\nError building transaction:")
+            print(f"Error type: {type(e)}")
+            print(f"Error message: {str(e)}")
+            print(f"Error args: {e.args}")
+            raise
+        
+        print("\n=== Signing Transaction ===")
+        try:
+            signed_txn = account.sign_transaction(transaction)
+            print(f"Transaction signed successfully")
+            print(f"Raw transaction length: {len(signed_txn.rawTransaction)}")
+        except Exception as e:
+            print(f"\nError signing transaction:")
+            print(f"Error type: {type(e)}")
+            print(f"Error message: {str(e)}")
+            raise
+        
+        print("\n=== Sending Transaction ===")
+        try:
+            tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            print(f"Transaction sent successfully")
+            print(f"Transaction hash: {tx_hash.hex()}")
+        except Exception as e:
+            print(f"\nError sending transaction:")
+            print(f"Error type: {type(e)}")
+            print(f"Error message: {str(e)}")
+            raise
+        
+        print("\n=== Waiting for Receipt ===")
+        try:
+            receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+            print(f"Transaction receipt received:")
+            print(f"- Status: {receipt.get('status')}")
+            print(f"- Block number: {receipt.get('blockNumber')}")
+            print(f"- Gas used: {receipt.get('gasUsed')}")
+            return receipt
+        except Exception as e:
+            print(f"\nError getting transaction receipt:")
+            print(f"Error type: {type(e)}")
+            print(f"Error message: {str(e)}")
+            raise
         
     except Exception as e:
+        print(f"\n=== Stake Error Details ===")
+        print(f"Final error type: {type(e)}")
+        print(f"Final error message: {str(e)}")
+        print(f"Final error args: {e.args}")
+        print(f"Error location: {traceback.extract_tb(e.__traceback__)[-1]}")
+        print(f"Full stack trace:\n{traceback.format_exc()}")
         raise Exception(f"Failed to stake tokens: {str(e)}")
 
 def unstake_tokens(address, amount, private_key):
@@ -135,6 +264,7 @@ def unstake_tokens(address, amount, private_key):
             amount = int(amount)
         
         nonce = web3.eth.get_transaction_count(account.address)
+        # Only pass amount, contract will use msg.sender for the address
         txn = contract.functions.unstake(amount).build_transaction({
             'chainId': 31337,
             'gas': 200000,

@@ -1,240 +1,130 @@
-# NeuroHarmony: Decentralized Research Collaboration Platform
+# DeSci NeuroHarmony
 
-## 🧠 Overview
+A decentralized platform for neuroscience research collaboration and funding.
 
-NeuroHarmony is a decentralized platform that revolutionizes neuroscience research collaboration through blockchain technology. It enables researchers to collaborate, share resources, and govern research funding through a transparent and efficient DAO structure.
-
-## ✨ Key Features
-
-### 📊 Data Analysis & Visualization
-
-- EEG data visualization with interactive plots
-- Frequency analysis with band detection (delta, theta, alpha, beta, gamma)
-- Data export functionality in JSON format
-- Real-time data processing and visualization
-- Performance optimized with data size limits
-
-### 🤝 Research Collaboration
-
-- Create and manage research projects through smart contracts
-- Track project progress and completion status
-- Secure data provenance tracking
-- Integration with ResearchHub for wider collaboration
-
-### 🏛️ DAO Governance
-
-- Create and vote on funding proposals
-- Execute approved proposals automatically
-- Transparent budget allocation
-- Token-based governance rights
-
-### 🎁 Token Rewards
-
-- NEURO token rewards for research contributions
-- Stake tokens for governance participation
-- Flexible staking/unstaking mechanisms
-- Development environment token minting
-- Comprehensive error handling and validation
-
-## 🏗️ Architecture
-
-### Backend (Python)
-
-- Flask server with RESTful API endpoints
-- Web3.py for Ethereum blockchain interaction
-- Comprehensive error handling and logging
-- Rate limiting and data size restrictions
-- Modular architecture for easy extension
-
-### Smart Contracts
-
-- `ResearchCollaboration.sol`: Research project management
-- `NeuroGrantDAO.sol`: Governance and proposal system
-- `NEUROToken.sol`: ERC-20 token with staking functionality
-- `NeuroDataProvenance.sol`: Data provenance tracking
-
-### Frontend
-
-- Next.js 13 with App Router
-- React for UI components
-- Web3.js for blockchain interaction
-- TailwindCSS for styling
-- MetaMask integration
-
-## 🚀 Getting Started
-
-### Prerequisites
+## Prerequisites
 
 - Node.js (v16 or higher)
 - Python 3.8 or higher
 - npm or yarn
-- MetaMask wallet browser extension
-- Hardhat for local blockchain
+- A modern web browser
+- MetaMask wallet extension
 
-### Installation
+## Project Structure
 
-1. Clone the repository
+```
+desci-neuroharmony/
+├── backend/          # Smart contracts and Python backend
+├── frontend/         # Next.js frontend application
+└── README.md        # This file
+```
+
+## Setup Instructions
+
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/neuro-harmony.git
-cd neuro-harmony
+git clone <repository-url>
+cd desci-neuroharmony
 ```
 
-2. Install frontend dependencies
-
-```bash
-cd frontend
-npm install
-# or
-yarn install
-```
-
-3. Install Python backend dependencies
-
-```bash
-cd backend/python
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-4. Set up environment variables
-
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` with your configuration:
-
-```
-NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
-NEXT_PUBLIC_CHAIN_ID=31337
-NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
-```
-
-5. Start the local blockchain
+### 2. Backend Setup
 
 ```bash
 cd backend
+
+# Install Node.js dependencies
+npm install
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Start local Hardhat node
 npx hardhat node
-```
 
-6. Deploy smart contracts
-
-```bash
+# In a new terminal, deploy smart contracts
 npx hardhat run scripts/deploy.js --network localhost
+
+# Start Python backend server
+python3 python/app.py
 ```
 
-7. Configure MetaMask for Local Development
-
-To test the application without using real ETH, you need to connect MetaMask to the local Hardhat network:
-
-a. Install the MetaMask browser extension if you haven't already
-b. Sign in to your MetaMask wallet
-c. Add the Hardhat local network:
-
-- Open MetaMask
-- Go to Settings > Networks > Add a Network
-- Fill in the network details:
-  - Network Name: Hardhat Localhost
-  - RPC URL: http://127.0.0.1:8545
-  - Chain ID: 31337
-  - Currency Symbol: ETH
-
-Note: The Hardhat node provides 20 test accounts with 10000 ETH each. You can import these accounts using their private keys shown in the Hardhat node console.
-
-8. Start the Python backend server
-
-```bash
-cd backend/python
-python app.py
-```
-
-9. Start the frontend development server
+### 3. Frontend Setup
 
 ```bash
 cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
 ```
 
-10. Open [http://localhost:3000](http://localhost:3000) in your browser
+### 4. MetaMask Configuration
 
-## 📡 API Endpoints
+1. Install MetaMask browser extension
+2. Add Hardhat Network to MetaMask:
+   - Network Name: Hardhat
+   - RPC URL: http://127.0.0.1:8545
+   - Chain ID: 31337
+   - Currency Symbol: ETH
 
-### Data Processing
+### 5. Get Test NEURO Tokens
 
-- `POST /api/python/visualize`: Visualize EEG data
-- `POST /api/python/analyze`: Perform frequency analysis
-- `POST /api/python/export`: Export data in JSON format
-- `GET /api/python/fetch-data`: Fetch OpenNeuro datasets
+To get test NEURO tokens for development:
 
-### Research Collaboration
-
-- `POST /api/python/project`: Create research project
-- `POST /api/python/research-hub`: Post to ResearchHub
-
-### Token Management
-
-- `POST /api/python/reward`: Distribute token rewards
-- `POST /api/python/stake`: Stake NEURO tokens
-- `POST /api/python/unstake`: Unstake NEURO tokens
-- `POST /api/python/mint`: Mint tokens (development only)
-
-### Funding
-
-- `POST /api/python/grant`: Create grant proposals
-
-## 🎨 Project Structure
-
-```
-neuro-harmony/
-├── frontend/                # Next.js frontend
-│   ├── app/
-│   │   ├── components/     # React components
-│   │   ├── lib/           # Utility functions and Web3 setup
-│   │   └── page.tsx       # Main page component
-│   └── public/            # Static assets
-├── backend/
-│   ├── python/            # Python backend
-│   │   ├── app.py        # Flask server
-│   │   └── *.py          # Backend modules
-│   ├── contracts/        # Smart contracts
-│   └── scripts/          # Deployment scripts
-└── README.md             # Documentation
+```bash
+cd backend
+npx hardhat run scripts/mint.js --network localhost
 ```
 
-## 🔐 Security Features
+This will mint 1000 NEURO tokens to your connected wallet address.
 
-- Comprehensive input validation
-- Rate limiting on API endpoints
-- Data size restrictions
-- Secure transaction handling
-- Error logging and monitoring
-- Access control for sensitive operations
+## Smart Contract Addresses (Local Development)
 
-## 🛣️ Recent Updates
+- NEUROToken: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+- NeuroGrantDAO: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+- NeuroDataProvenance: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+- ResearchCollaboration: 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
+- ResearchFunding: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
+- ScienceToken: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
 
-- Integrated Python backend with smart contracts
-- Added token staking/unstaking functionality
-- Implemented proper error handling and logging
-- Optimized data processing performance
-- Added development environment tooling
-- Enhanced API documentation
+## Development Accounts
 
-## 👥 Contributing
+When running the local Hardhat network, you can use these pre-funded accounts for testing:
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+- Account #0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (default deployer)
+  - Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
-## 📄 License
+## Available Features
+
+- NEURO token staking and rewards
+- Research project collaboration
+- Grant proposals and voting
+- Dataset provenance tracking
+- Research funding distribution
+
+## Common Issues & Troubleshooting
+
+1. If you get "nonce too high" error in MetaMask:
+
+   - Go to MetaMask Settings > Advanced > Reset Account
+
+2. If contracts are not found:
+
+   - Make sure you've deployed contracts using `npx hardhat run scripts/deploy.js --network localhost`
+   - Verify contract addresses in `backend/config/contracts.config.json`
+
+3. If Python backend fails to start:
+   - Check if all required Python packages are installed
+   - Verify the Hardhat node is running
+   - Ensure the contract addresses in config match the deployed addresses
+
+## Contributing
+
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-Built with ❤️ for the advancement of neuroscience research

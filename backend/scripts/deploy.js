@@ -17,23 +17,8 @@ async function main() {
     );
     console.log("NeuroDataProvenance Contract Factory loaded.");
     const neuroDataProvenance = await NeuroDataProvenanceFactory.deploy();
-    console.log("Deploying NeuroDataProvenance...");
-    if (
-      neuroDataProvenance.deployTransaction &&
-      typeof neuroDataProvenance.deployTransaction.wait === "function"
-    ) {
-      console.log(
-        "Waiting for NeuroDataProvenance deployment transaction to be mined...",
-      );
-      await neuroDataProvenance.deployTransaction.wait();
-      console.log("NeuroDataProvenance deployment transaction mined.");
-    } else {
-      console.log(
-        "No deployTransaction found for NeuroDataProvenance; assuming already deployed.",
-      );
-    }
-    const neuroDataProvenanceAddress =
-      neuroDataProvenance.address || neuroDataProvenance.target;
+    await neuroDataProvenance.waitForDeployment();
+    const neuroDataProvenanceAddress = await neuroDataProvenance.getAddress();
     console.log(
       "NeuroDataProvenance deployed to address:",
       neuroDataProvenanceAddress,
@@ -45,44 +30,16 @@ async function main() {
     );
     console.log("NeuroGrantDAO Contract Factory loaded.");
     const neuroGrantDAO = await NeuroGrantDAOFactory.deploy();
-    console.log("Deploying NeuroGrantDAO...");
-    if (
-      neuroGrantDAO.deployTransaction &&
-      typeof neuroGrantDAO.deployTransaction.wait === "function"
-    ) {
-      console.log(
-        "Waiting for NeuroGrantDAO deployment transaction to be mined...",
-      );
-      await neuroGrantDAO.deployTransaction.wait();
-      console.log("NeuroGrantDAO deployment transaction mined.");
-    } else {
-      console.log(
-        "No deployTransaction found for NeuroGrantDAO; assuming already deployed.",
-      );
-    }
-    const neuroGrantDAOAddress = neuroGrantDAO.address || neuroGrantDAO.target;
+    await neuroGrantDAO.waitForDeployment();
+    const neuroGrantDAOAddress = await neuroGrantDAO.getAddress();
     console.log("NeuroGrantDAO deployed to address:", neuroGrantDAOAddress);
 
     // Deploy NEUROToken
     const NEUROTokenFactory = await ethers.getContractFactory("NEUROToken");
     console.log("NEUROToken Contract Factory loaded.");
     const neuroToken = await NEUROTokenFactory.deploy();
-    console.log("Deploying NEUROToken...");
-    if (
-      neuroToken.deployTransaction &&
-      typeof neuroToken.deployTransaction.wait === "function"
-    ) {
-      console.log(
-        "Waiting for NEUROToken deployment transaction to be mined...",
-      );
-      await neuroToken.deployTransaction.wait();
-      console.log("NEUROToken deployment transaction mined.");
-    } else {
-      console.log(
-        "No deployTransaction found for NEUROToken; assuming already deployed.",
-      );
-    }
-    const neuroTokenAddress = neuroToken.address || neuroToken.target;
+    await neuroToken.waitForDeployment();
+    const neuroTokenAddress = await neuroToken.getAddress();
     console.log("NEUROToken deployed to address:", neuroTokenAddress);
 
     // Deploy ResearchCollaboration
@@ -91,23 +48,9 @@ async function main() {
     );
     console.log("ResearchCollaboration Contract Factory loaded.");
     const researchCollaboration = await ResearchCollaborationFactory.deploy();
-    console.log("Deploying ResearchCollaboration...");
-    if (
-      researchCollaboration.deployTransaction &&
-      typeof researchCollaboration.deployTransaction.wait === "function"
-    ) {
-      console.log(
-        "Waiting for ResearchCollaboration deployment transaction to be mined...",
-      );
-      await researchCollaboration.deployTransaction.wait();
-      console.log("ResearchCollaboration deployment transaction mined.");
-    } else {
-      console.log(
-        "No deployTransaction found for ResearchCollaboration; assuming already deployed.",
-      );
-    }
+    await researchCollaboration.waitForDeployment();
     const researchCollaborationAddress =
-      researchCollaboration.address || researchCollaboration.target;
+      await researchCollaboration.getAddress();
     console.log(
       "ResearchCollaboration deployed to address:",
       researchCollaborationAddress,
@@ -119,61 +62,55 @@ async function main() {
     );
     console.log("ResearchFunding Contract Factory loaded.");
     const researchFunding = await ResearchFundingFactory.deploy();
-    console.log("Deploying ResearchFunding...");
-    if (
-      researchFunding.deployTransaction &&
-      typeof researchFunding.deployTransaction.wait === "function"
-    ) {
-      console.log(
-        "Waiting for ResearchFunding deployment transaction to be mined...",
-      );
-      await researchFunding.deployTransaction.wait();
-      console.log("ResearchFunding deployment transaction mined.");
-    } else {
-      console.log(
-        "No deployTransaction found for ResearchFunding; assuming already deployed.",
-      );
-    }
-    const researchFundingAddress =
-      researchFunding.address || researchFunding.target;
+    await researchFunding.waitForDeployment();
+    const researchFundingAddress = await researchFunding.getAddress();
     console.log("ResearchFunding deployed to address:", researchFundingAddress);
 
     // Deploy ScienceToken
     const ScienceTokenFactory = await ethers.getContractFactory("ScienceToken");
     console.log("ScienceToken Contract Factory loaded.");
     const scienceToken = await ScienceTokenFactory.deploy();
-    console.log("Deploying ScienceToken...");
-    if (
-      scienceToken.deployTransaction &&
-      typeof scienceToken.deployTransaction.wait === "function"
-    ) {
-      console.log(
-        "Waiting for ScienceToken deployment transaction to be mined...",
-      );
-      await scienceToken.deployTransaction.wait();
-      console.log("ScienceToken deployment transaction mined.");
-    } else {
-      console.log(
-        "No deployTransaction found for ScienceToken; assuming already deployed.",
-      );
-    }
-    const scienceTokenAddress = scienceToken.address || scienceToken.target;
+    await scienceToken.waitForDeployment();
+    const scienceTokenAddress = await scienceToken.getAddress();
     console.log("ScienceToken deployed to address:", scienceTokenAddress);
 
     // Output all deployed contract addresses
-    console.log("All deployed contract addresses:");
-    console.log({
+    const addresses = {
       NeuroDataProvenance: neuroDataProvenanceAddress,
       NeuroGrantDAO: neuroGrantDAOAddress,
       NEUROToken: neuroTokenAddress,
       ResearchCollaboration: researchCollaborationAddress,
       ResearchFunding: researchFundingAddress,
       ScienceToken: scienceTokenAddress,
-    });
+    };
+
+    console.log("All deployed contract addresses:", addresses);
+
+    // Update the contract configuration file
+    const fs = require("fs");
+    const path = require("path");
+    const configPath = path.join(
+      __dirname,
+      "..",
+      "config",
+      "contracts.config.json",
+    );
+    const config = require(configPath);
+
+    // Update addresses in config
+    config.NeuroDataProvenance.address = neuroDataProvenanceAddress;
+    config.NeuroGrantDAO.address = neuroGrantDAOAddress;
+    config.NEUROToken.address = neuroTokenAddress;
+    config.ResearchCollaboration.address = researchCollaborationAddress;
+    config.ResearchFunding.address = researchFundingAddress;
+    config.ScienceToken.address = scienceTokenAddress;
+
+    // Write updated config back to file
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    console.log("Contract configuration updated successfully");
   } catch (error) {
     console.error("Error during contract deployment:", error);
-  } finally {
-    process.exit(0);
+    process.exit(1);
   }
 }
 
