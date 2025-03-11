@@ -1,24 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { neuroGrantDAO } from "../lib/web3";
+import React, { useState, useEffect, ReactNode } from "react";
+import { neuroGrantDAO, neuroToken } from "../lib/web3";
 import Web3 from "web3";
 import Modal from "./Modal";
 import { AbiItem } from "web3-utils";
 
 interface ContractProposal {
-  0: string;
-  1: string;
-  2: string;
-  3: string;
-  4: string;
-  5: boolean;
-  id: string;
   description: string;
   budget: string;
   votes: string;
   proposer: string;
   executed: boolean;
+  [key: number]: string | boolean;
 }
 
 interface Proposal {
@@ -31,22 +25,39 @@ interface Proposal {
 }
 
 interface DAOGovernanceProps {
-  web3: Web3;
-  account: string;
+  web3: Web3 | null;
+  account: string | null;
+  showModal: (title: string, message: string) => void;
 }
 
-const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
+interface LoadingStates {
+  fetchingProposals: boolean;
+  creatingProposal: boolean;
+  voting: boolean;
+  executing: boolean;
+  updatingVotingPower: boolean;
+  fetchingVotingPower: boolean;
+}
+
+const DAOGovernance: React.FC<DAOGovernanceProps> = ({
+  web3,
+  account,
+  showModal,
+}): ReactNode => {
   const [mounted, setMounted] = useState(false);
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [votingPower, setVotingPower] = useState<string>("0");
   const [newProposal, setNewProposal] = useState({
     description: "",
     budget: "",
   });
-  const [loadingStates, setLoadingStates] = useState({
+  const [loadingStates, setLoadingStates] = useState<LoadingStates>({
     fetchingProposals: false,
     creatingProposal: false,
     voting: false,
     executing: false,
+    updatingVotingPower: false,
+    fetchingVotingPower: false,
   });
   const [formErrors, setFormErrors] = useState({
     description: "",
@@ -60,217 +71,108 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
 
   useEffect(() => {
     setMounted(true);
-    return () => {
-      setLoadingStates({
-        fetchingProposals: false,
-        creatingProposal: false,
-        voting: false,
-        executing: false,
-      });
-    };
   }, []);
 
+  // Only check voting power when account changes
   useEffect(() => {
     if (mounted && web3 && account) {
-      console.log("Attempting to fetch proposals with:", {
-        web3: !!web3,
-        account,
-        contractAddress: neuroGrantDAO.address,
-      });
-      checkNetworkAndFetch();
+      const neuroTokenContract = new web3.eth.Contract(
+        neuroToken.abi as AbiItem[],
+        neuroToken.address,
+      );
+
+      neuroTokenContract.methods
+        .getStakedAmount(account)
+        .call()
+        .then((stakedAmount: any) => {
+          if (stakedAmount && BigInt(stakedAmount.toString()) > BigInt(0)) {
+            setVotingPower(
+              web3.utils.fromWei(stakedAmount.toString(), "ether"),
+            );
+          } else {
+            setVotingPower("0");
+          }
+        })
+        .catch((error: Error) => {
+          console.error("Error checking staked amount:", error);
+          setVotingPower("0");
+        });
     }
   }, [mounted, web3, account]);
 
-  const checkNetworkAndFetch = async () => {
-    try {
-      // First check if web3 is properly initialized
-      if (!web3 || !web3.eth) {
-        console.error("Web3 is not properly initialized");
-        setProposals([]);
-        showModal(
-          "Connection Error",
-          "Web3 is not properly initialized. Please ensure MetaMask is installed and working.",
-        );
-        return;
-      }
-
-      // Check if MetaMask is connected
-      const accounts = await web3.eth.getAccounts();
-      if (!accounts || accounts.length === 0) {
-        console.error("No accounts found - please connect MetaMask");
-        setProposals([]);
-        showModal(
-          "Connection Error",
-          "No accounts found. Please connect your MetaMask wallet.",
-        );
-        return;
-      }
-
-      // Try to get network ID with error handling
-      let networkId;
-      try {
-        networkId = await web3.eth.net.getId();
-        console.log("Current network ID:", networkId);
-      } catch (networkError) {
-        console.error("Error getting network ID:", networkError);
-        setProposals([]);
-        showModal(
-          "Network Error",
-          "Unable to detect network. Please check your MetaMask connection.",
-        );
-        return;
-      }
-
-      // Check if we're on the correct network (e.g., localhost:8545 is network 31337)
-      if (Number(networkId) !== 31337) {
-        console.error("Please connect to the local hardhat network");
-        setProposals([]);
-        showModal(
-          "Network Error",
-          "Please connect to the local hardhat network to interact with the DAO.",
-        );
-        return;
-      }
-
-      // Verify RPC connection
-      try {
-        await web3.eth.getBlockNumber();
-      } catch (rpcError) {
-        console.error("RPC connection failed:", rpcError);
-        setProposals([]);
-        showModal(
-          "Connection Error",
-          "Failed to connect to the network. Please check your RPC connection.",
-        );
-        return;
-      }
-
-      fetchProposals();
-    } catch (error) {
-      console.error("Error checking network:", error);
-      setProposals([]);
-      showModal(
-        "Network Error",
-        "Failed to check network. Please ensure MetaMask is connected.",
-      );
-    }
-  };
-
   const fetchProposals = async () => {
+    if (!web3 || !account) {
+      return;
+    }
+
     try {
-      setLoadingStates((prev) => ({ ...prev, fetchingProposals: true }));
-
-      // Verify contract address
-      if (!neuroGrantDAO.address) {
-        console.error("Contract address is not defined");
-        setProposals([]);
-        setLoadingStates((prev) => ({ ...prev, fetchingProposals: false }));
-        showModal(
-          "Contract Error",
-          "Contract address is not defined. Please check your configuration.",
-        );
-        return;
-      }
-
-      console.log(
-        "Attempting to connect to contract at:",
-        neuroGrantDAO.address,
-      );
-
-      // Create contract instance
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        fetchingProposals: true,
+      }));
       const contract = new web3.eth.Contract(
         neuroGrantDAO.abi as AbiItem[],
         neuroGrantDAO.address,
       );
 
-      // Verify contract is deployed
-      try {
-        const code = await web3.eth.getCode(neuroGrantDAO.address);
-        console.log("Contract code at address:", code);
+      const proposalCount = await contract.methods.proposalCount().call();
+      const count = Number(proposalCount);
 
-        if (code === "0x") {
-          console.error("No contract code at specified address");
-          setProposals([]);
-          setLoadingStates((prev) => ({ ...prev, fetchingProposals: false }));
-          showModal(
-            "Contract Error",
-            "No contract found at the specified address. Please ensure the contract is deployed.",
-          );
-          return;
-        }
+      const fetchedProposals: Proposal[] = [];
+      if (count > 0) {
+        for (let i = 1; i <= count; i++) {
+          try {
+            const rawProposal = (await contract.methods
+              .proposals(i)
+              .call()) as ContractProposal;
 
-        // Try to call proposalCount() directly without estimateGas
-        const proposalCount = await contract.methods.proposalCount().call();
-        console.log("Proposal count:", proposalCount);
-        const count = Number(proposalCount);
+            if (!rawProposal) continue;
 
-        const fetchedProposals: Proposal[] = [];
-        if (count > 0) {
-          for (let i = 1; i <= count; i++) {
-            try {
-              const rawProposal = (await contract.methods
-                .proposals(i)
-                .call()) as ContractProposal;
-              console.log(`Raw proposal ${i} data:`, rawProposal);
+            // Type assertions to handle potential boolean values
+            const description = String(
+              rawProposal.description || rawProposal[1] || "",
+            );
+            const budget = String(rawProposal.budget || rawProposal[2] || "0");
+            const proposer = String(
+              rawProposal.proposer || rawProposal[4] || "",
+            );
+            const executed = Boolean(rawProposal.executed || rawProposal[5]);
+            const votes = String(rawProposal.votes || rawProposal[3] || "0");
 
-              // Add additional error checking
-              if (!rawProposal) {
-                console.error(`Proposal ${i} returned null or undefined`);
-                continue;
-              }
-
-              // Web3.js returns struct data as both array and named properties
-              const proposalData = {
-                id: rawProposal.id || rawProposal[0],
-                description: rawProposal.description || rawProposal[1],
-                budget: rawProposal.budget || rawProposal[2],
-                votes: rawProposal.votes || rawProposal[3],
-                proposer: rawProposal.proposer || rawProposal[4],
-                executed: rawProposal.executed || rawProposal[5],
-              };
-
-              console.log(`Decoded proposal ${i} data:`, proposalData);
-
-              if (!proposalData.description) {
-                console.error(
-                  `Invalid proposal data for id ${i}:`,
-                  proposalData,
-                );
-                continue;
-              }
-
-              fetchedProposals.push({
-                id: i,
-                description: proposalData.description,
-                budget: web3.utils.fromWei(proposalData.budget, "ether"),
-                proposer: proposalData.proposer,
-                isExecuted: proposalData.executed,
-                votes: Number(proposalData.votes),
-              });
-            } catch (error) {
-              console.error(`Error fetching proposal ${i}:`, error);
-            }
+            fetchedProposals.push({
+              id: i,
+              description,
+              budget: web3.utils.fromWei(budget, "ether"),
+              proposer,
+              isExecuted: executed,
+              votes: Number(votes),
+            });
+          } catch (error) {
+            console.error(`Error fetching proposal ${i}:`, error);
           }
         }
-        console.log("Fetched proposals:", fetchedProposals);
-        setProposals(fetchedProposals);
-      } catch (error) {
-        console.error("Error interacting with contract:", error);
-        setProposals([]);
-        showModal(
-          "Contract Error",
-          "Failed to interact with the contract. Please ensure it is properly deployed.",
-        );
       }
+      setProposals(fetchedProposals);
     } catch (error) {
-      console.error("Error in fetchProposals:", error);
+      console.error("Error fetching proposals:", error);
       setProposals([]);
-      showModal(
-        "Error",
-        "Failed to fetch proposals. Please check your network connection and try again.",
-      );
     } finally {
-      setLoadingStates((prev) => ({ ...prev, fetchingProposals: false }));
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        fetchingProposals: false,
+      }));
+    }
+  };
+
+  // Add a manual refresh button for proposals
+  const handleRefreshProposals = () => {
+    if (web3 && account) {
+      fetchProposals();
+    } else {
+      showModal(
+        "Wallet Required",
+        "Please connect your wallet to view proposals.",
+      );
     }
   };
 
@@ -304,14 +206,17 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
   };
 
   const createProposal = async () => {
-    if (!validateForm()) {
+    if (!web3 || !account || !validateForm()) {
       return;
     }
 
     try {
-      setLoadingStates((prev) => ({ ...prev, creatingProposal: true }));
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        creatingProposal: true,
+      }));
       const contract = new web3.eth.Contract(
-        neuroGrantDAO.abi,
+        neuroGrantDAO.abi as AbiItem[],
         neuroGrantDAO.address,
       );
 
@@ -328,67 +233,299 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
       console.error("Error creating proposal:", error);
       showModal("Error", "Failed to create proposal. Please try again.");
     } finally {
-      setLoadingStates((prev) => ({ ...prev, creatingProposal: false }));
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        creatingProposal: false,
+      }));
+    }
+  };
+
+  const syncVotingPower = async () => {
+    if (!web3 || !account) {
+      return;
+    }
+
+    try {
+      console.log("=== Starting syncVotingPower ===");
+      console.log("Account:", account);
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        updatingVotingPower: true,
+      }));
+
+      const neuroTokenContract = new web3.eth.Contract(
+        neuroToken.abi as AbiItem[],
+        neuroToken.address,
+      );
+
+      const stakedAmount: any = await neuroTokenContract.methods
+        .getStakedAmount(account)
+        .call();
+      console.log("Current staked amount (wei):", stakedAmount);
+      const stakedAmountInNeuro = web3.utils.fromWei(
+        stakedAmount.toString(),
+        "ether",
+      );
+      console.log("Current staked amount (NEURO):", stakedAmountInNeuro);
+
+      if (BigInt(stakedAmount.toString()) <= BigInt(0)) {
+        console.log("No staked tokens found, setting voting power to 0");
+        setVotingPower("0");
+        return;
+      }
+
+      const daoContract = new web3.eth.Contract(
+        neuroGrantDAO.abi as AbiItem[],
+        neuroGrantDAO.address,
+      );
+
+      try {
+        const currentPower: any = await daoContract.methods
+          .getVotingPower(account)
+          .call();
+        console.log(
+          "Current voting power before update (NEURO):",
+          web3.utils.fromWei(currentPower.toString(), "ether"),
+        );
+
+        console.log("Attempting to update voting power...");
+        const gasEstimate = await daoContract.methods
+          .updateVotingPower(account)
+          .estimateGas({ from: account });
+
+        const updateTx = await daoContract.methods
+          .updateVotingPower(account)
+          .send({
+            from: account,
+            gas: ((BigInt(gasEstimate) * BigInt(12)) / BigInt(10)).toString(),
+          });
+        console.log("Update voting power transaction:", updateTx);
+
+        const newPower: any = await daoContract.methods
+          .getVotingPower(account)
+          .call();
+        console.log(
+          "New voting power (NEURO):",
+          web3.utils.fromWei(newPower.toString(), "ether"),
+        );
+        setVotingPower(web3.utils.fromWei(newPower.toString(), "ether"));
+      } catch (error) {
+        console.warn(
+          "Failed to update voting power, using staked amount instead",
+        );
+        console.error("Update voting power error:", error);
+        setVotingPower(stakedAmountInNeuro);
+      }
+    } catch (error) {
+      console.error("Error in syncVotingPower:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+        });
+      }
+      console.warn("Failed to sync voting power, will try again later");
+    } finally {
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        updatingVotingPower: false,
+      }));
     }
   };
 
   const voteForProposal = async (proposalId: number) => {
+    if (!web3 || !account) {
+      showModal("Error", "Please connect your wallet first");
+      return;
+    }
+
     try {
-      setLoadingStates((prev) => ({ ...prev, voting: true }));
+      setLoadingStates((prev: LoadingStates) => ({ ...prev, voting: true }));
+
       const contract = new web3.eth.Contract(
         neuroGrantDAO.abi as AbiItem[],
         neuroGrantDAO.address,
       );
 
-      // Get the user's voting power from the mapping
-      const userVotingPower = await contract.methods
-        .votingPower(account)
-        .call();
-      console.log("User voting power:", userVotingPower);
+      console.log("=== Starting vote process ===");
+      console.log("DAO Contract address:", neuroGrantDAO.address);
+      console.log("Account voting:", account);
+      console.log("Proposal ID:", proposalId);
 
-      if (Number(userVotingPower) <= 0) {
+      // First check if the proposal exists and is not executed
+      console.log("Fetching proposal details...");
+      const proposal = (await contract.methods
+        .proposals(proposalId)
+        .call()) as ContractProposal;
+
+      if (!proposal) {
+        showModal("Error", "Proposal not found.");
+        return;
+      }
+
+      if (proposal.executed) {
+        showModal("Error", "This proposal has already been executed.");
+        return;
+      }
+
+      // Check if user has already voted
+      console.log("Checking if user has already voted...");
+      const hasVoted = await contract.methods
+        .hasUserVoted(proposalId, account)
+        .call();
+      console.log("Has user voted:", hasVoted);
+
+      if (hasVoted) {
+        showModal("Voting Error", "You have already voted on this proposal.");
+        return;
+      }
+
+      // Check current voting power before attempting to update
+      console.log("Checking current voting power...");
+      const currentVotingPower: string = await contract.methods
+        .getVotingPower(account)
+        .call();
+      console.log("Current voting power (wei):", currentVotingPower);
+      console.log(
+        "Current voting power (NEURO):",
+        web3.utils.fromWei(currentVotingPower, "ether"),
+      );
+
+      // Get current staked amount from NEUROToken contract
+      console.log("Checking NEURO token balance...");
+      const neuroTokenContract = new web3.eth.Contract(
+        neuroToken.abi as AbiItem[],
+        neuroToken.address,
+      );
+
+      console.log("NEURO Token contract address:", neuroToken.address);
+      const stakedAmount: string = await neuroTokenContract.methods
+        .getStakedAmount(account)
+        .call();
+      console.log("Staked amount (wei):", stakedAmount);
+      console.log(
+        "Staked amount (NEURO):",
+        web3.utils.fromWei(stakedAmount, "ether"),
+      );
+
+      if (BigInt(stakedAmount) <= BigInt(0)) {
         showModal(
-          "Error",
-          "You don't have any voting power. You need to stake NEURO tokens to get voting power.",
+          "Voting Error",
+          "You need to stake NEURO tokens to vote. Please stake some tokens first.",
         );
         return;
       }
 
-      // Use 1 vote by default, or the user's available voting power if less than 1
-      const votesToUse = Math.min(1, Number(userVotingPower));
-      console.log("Attempting to use votes:", votesToUse);
-
-      await contract.methods
-        .vote(proposalId, votesToUse)
-        .send({ from: account });
-      await fetchProposals();
-      showModal(
-        "Success",
-        `Successfully voted on proposal #${proposalId} with ${votesToUse} vote(s)!`,
+      // Use a small amount of voting power (0.1 NEURO) to test
+      const voteAmount = web3.utils.toWei("0.1", "ether");
+      console.log("Vote amount (wei):", voteAmount);
+      console.log(
+        "Vote amount (NEURO):",
+        web3.utils.fromWei(voteAmount, "ether"),
       );
-    } catch (error: unknown) {
-      console.error("Error voting for proposal:", error);
-      if (
-        error instanceof Error &&
-        error.message.includes("Insufficient voting power")
-      ) {
-        showModal(
-          "Error",
-          "You don't have enough voting power. Please stake more NEURO tokens.",
+
+      // Check if user has enough voting power
+      if (BigInt(currentVotingPower) < BigInt(voteAmount)) {
+        // Try to update voting power first
+        console.log("Insufficient voting power, attempting to update...");
+        const updateTx = await contract.methods
+          .updateVotingPower(account)
+          .send({
+            from: account,
+            gas: "200000", // Fixed gas amount for update
+          });
+        console.log("Update voting power result:", updateTx);
+
+        // Check voting power again
+        const newVotingPower: string = await contract.methods
+          .getVotingPower(account)
+          .call();
+        console.log(
+          "New voting power after update (NEURO):",
+          web3.utils.fromWei(newVotingPower, "ether"),
         );
-      } else {
-        showModal("Error", "Failed to cast vote. Please try again.");
+
+        if (BigInt(newVotingPower) < BigInt(voteAmount)) {
+          showModal(
+            "Voting Error",
+            `Insufficient voting power. You need at least 0.1 NEURO voting power. Current voting power: ${web3.utils.fromWei(
+              newVotingPower,
+              "ether",
+            )} NEURO`,
+          );
+          return;
+        }
       }
+
+      // Try to vote with a higher gas limit
+      console.log("Estimating gas for vote...");
+      const gasEstimate = await contract.methods
+        .vote(proposalId, voteAmount)
+        .estimateGas({ from: account });
+      console.log("Vote gas estimate:", gasEstimate);
+
+      // Use 2x the estimated gas to ensure enough gas for both voting power update and vote
+      const adjustedGas = (BigInt(gasEstimate) * BigInt(2)).toString();
+      console.log("Adjusted gas limit:", adjustedGas);
+
+      console.log("Submitting vote transaction...");
+      const voteTx = await contract.methods.vote(proposalId, voteAmount).send({
+        from: account,
+        gas: adjustedGas,
+      });
+      console.log("Vote transaction result:", voteTx);
+
+      // Check final state
+      const finalProposal = await contract.methods.proposals(proposalId).call();
+      console.log("Final proposal state:", finalProposal);
+
+      showModal("Success", "Successfully voted on the proposal!");
+
+      // Refresh the data
+      await fetchProposals();
+      await syncVotingPower();
+    } catch (error) {
+      console.error("Error voting for proposal:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+
+      // Try to get more error details
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        });
+
+        // Check for specific error messages
+        if (error.message.includes("insufficient funds")) {
+          showModal(
+            "Voting Failed",
+            "Insufficient funds for gas. Please make sure you have enough ETH to cover the transaction.",
+          );
+          return;
+        }
+      }
+
+      showModal(
+        "Voting Failed",
+        `Failed to vote on proposal: ${errorMessage}. Please try again.`,
+      );
     } finally {
-      setLoadingStates((prev) => ({ ...prev, voting: false }));
+      setLoadingStates((prev: LoadingStates) => ({ ...prev, voting: false }));
     }
   };
 
   const executeProposal = async (proposalId: number) => {
+    if (!web3 || !account) {
+      showModal("Error", "Please connect your wallet first");
+      return;
+    }
+
     try {
-      setLoadingStates((prev) => ({ ...prev, executing: true }));
+      setLoadingStates((prev: LoadingStates) => ({ ...prev, executing: true }));
       const contract = new web3.eth.Contract(
-        neuroGrantDAO.abi,
+        neuroGrantDAO.abi as AbiItem[],
         neuroGrantDAO.address,
       );
 
@@ -401,21 +538,28 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
       console.error("Error executing proposal:", error);
       showModal("Error", "Failed to execute proposal. Please try again.");
     } finally {
-      setLoadingStates((prev) => ({ ...prev, executing: false }));
+      setLoadingStates((prev: LoadingStates) => ({
+        ...prev,
+        executing: false,
+      }));
     }
-  };
-
-  const showModal = (title: string, message: string) => {
-    setModal({
-      isOpen: true,
-      title,
-      message,
-    });
   };
 
   const closeModal = () => {
     setModal((prev) => ({ ...prev, isOpen: false }));
   };
+
+  const requireWalletConnection =
+    (action: () => Promise<void>, actionName: string) => async () => {
+      if (!account) {
+        showModal(
+          "Wallet Required",
+          `Please connect your wallet to ${actionName}.`,
+        );
+        return;
+      }
+      await action();
+    };
 
   if (!mounted) {
     return null;
@@ -423,71 +567,100 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
 
   return (
     <div className="p-6">
-      <h2 className="mb-6 text-2xl font-bold">NeuroHarmony DAO Governance</h2>
-
-      {/* Create New Proposal */}
-      <div className="mb-8 rounded-lg bg-white p-4 shadow">
-        <h3 className="mb-4 text-xl font-semibold">Create New Proposal</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Proposal Description
-            </label>
-            <textarea
-              placeholder="Enter a detailed description of your proposal..."
-              value={newProposal.description}
-              onChange={(e) => {
-                setNewProposal({ ...newProposal, description: e.target.value });
-                if (formErrors.description) {
-                  setFormErrors({ ...formErrors, description: "" });
-                }
-              }}
-              className={`w-full rounded border p-2 ${
-                formErrors.description ? "border-red-500" : ""
-              }`}
-              rows={3}
-            />
-            {formErrors.description && (
-              <p className="mt-1 text-sm text-red-500">
-                {formErrors.description}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Budget (in ETH)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Enter the budget in ETH"
-              value={newProposal.budget}
-              onChange={(e) => {
-                setNewProposal({ ...newProposal, budget: e.target.value });
-                if (formErrors.budget) {
-                  setFormErrors({ ...formErrors, budget: "" });
-                }
-              }}
-              className={`w-full rounded border p-2 ${
-                formErrors.budget ? "border-red-500" : ""
-              }`}
-            />
-            {formErrors.budget && (
-              <p className="mt-1 text-sm text-red-500">{formErrors.budget}</p>
-            )}
-          </div>
-          <button
-            type="submit"
-            disabled={loadingStates.creatingProposal}
-            className="w-full rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400">
-            {loadingStates.creatingProposal
-              ? "Creating Proposal..."
-              : "Create Proposal"}
-          </button>
-        </form>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-2xl font-bold">NeuroHarmony DAO Governance</h2>
+        <button
+          onClick={handleRefreshProposals}
+          className="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
+          Refresh Proposals
+        </button>
       </div>
 
-      {/* Proposals List */}
+      {/* Voting Power Display - Only show if wallet is connected */}
+      {account && (
+        <div className="mb-6 rounded-lg bg-white p-4 shadow">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-700">
+              Your Voting Power
+            </h3>
+            <p className="mt-2 text-2xl font-bold text-purple-600">
+              {votingPower} NEURO
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Stake NEURO tokens to increase your voting power
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Create New Proposal - Only show if wallet is connected */}
+      {account && (
+        <div className="mb-8 rounded-lg bg-white p-4 shadow">
+          <h3 className="mb-4 text-xl font-semibold">Create New Proposal</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Proposal Description
+              </label>
+              <textarea
+                placeholder="Enter a detailed description of your proposal..."
+                value={newProposal.description}
+                onChange={(e) => {
+                  setNewProposal({
+                    ...newProposal,
+                    description: e.target.value,
+                  });
+                  if (formErrors.description) {
+                    setFormErrors({ ...formErrors, description: "" });
+                  }
+                }}
+                className={`w-full rounded border p-2 ${
+                  formErrors.description ? "border-red-500" : ""
+                }`}
+                rows={3}
+              />
+              {formErrors.description && (
+                <p className="mt-1 text-sm text-red-500">
+                  {formErrors.description}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Budget (in ETH)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Enter the budget in ETH"
+                value={newProposal.budget}
+                onChange={(e) => {
+                  setNewProposal({ ...newProposal, budget: e.target.value });
+                  if (formErrors.budget) {
+                    setFormErrors({ ...formErrors, budget: "" });
+                  }
+                }}
+                className={`w-full rounded border p-2 ${
+                  formErrors.budget ? "border-red-500" : ""
+                }`}
+              />
+              {formErrors.budget && (
+                <p className="mt-1 text-sm text-red-500">{formErrors.budget}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={loadingStates.creatingProposal}
+              className="w-full rounded bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400">
+              {loadingStates.creatingProposal
+                ? "Creating Proposal..."
+                : "Create Proposal"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Proposals List - Always show */}
       <div className="space-y-4">
         {loadingStates.fetchingProposals ? (
           <div className="flex h-32 items-center justify-center rounded-lg bg-white">
@@ -518,7 +691,9 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
               No proposals yet
             </h3>
             <p className="mt-2 text-gray-600">
-              Create the first proposal to get started!
+              {account
+                ? "Create the first proposal to get started!"
+                : "Connect your wallet to create the first proposal!"}
             </p>
           </div>
         ) : (
@@ -556,13 +731,19 @@ const DAOGovernance: React.FC<DAOGovernanceProps> = ({ web3, account }) => {
                   {!proposal.isExecuted && (
                     <>
                       <button
-                        onClick={() => voteForProposal(proposal.id)}
+                        onClick={requireWalletConnection(
+                          () => voteForProposal(proposal.id),
+                          "vote on proposals",
+                        )}
                         disabled={loadingStates.voting}
                         className="w-full rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700 disabled:bg-gray-400">
                         {loadingStates.voting ? "Voting..." : "Vote"}
                       </button>
                       <button
-                        onClick={() => executeProposal(proposal.id)}
+                        onClick={requireWalletConnection(
+                          () => executeProposal(proposal.id),
+                          "execute proposals",
+                        )}
                         disabled={loadingStates.executing}
                         className="w-full rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:bg-gray-400">
                         {loadingStates.executing ? "Executing..." : "Execute"}

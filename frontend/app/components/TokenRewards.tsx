@@ -7,45 +7,6 @@ import { AbiItem } from "web3-utils";
 import Modal from "./Modal";
 import { EventLog } from "web3-types";
 
-// Add ERC20 ABI for basic token functions
-const ERC20_ABI = [
-  {
-    constant: true,
-    inputs: [{ name: "_owner", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "balance", type: "uint256" }],
-    type: "function",
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "decimals",
-    outputs: [{ name: "", type: "uint8" }],
-    type: "function",
-  },
-  {
-    constant: true,
-    inputs: [{ name: "account", type: "address" }],
-    name: "stakedTokens",
-    outputs: [{ name: "", type: "uint256" }],
-    type: "function",
-  },
-  {
-    constant: false,
-    inputs: [{ name: "amount", type: "uint256" }],
-    name: "stake",
-    outputs: [],
-    type: "function",
-  },
-  {
-    constant: false,
-    inputs: [{ name: "amount", type: "uint256" }],
-    name: "unstake",
-    outputs: [],
-    type: "function",
-  },
-];
-
 interface TokenRewardsProps {
   web3: Web3;
   account: string;
@@ -184,16 +145,10 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
         return;
       }
 
-      // Create contract instance with combined ABI
+      // Create contract instance with only NEUROToken ABI
       console.log("Creating contract instance...");
-      const combinedABI = [...ERC20_ABI, ...neuroToken.abi];
-      console.log(
-        "Combined Contract ABI:",
-        JSON.stringify(combinedABI, null, 2),
-      );
-
       const contract = new web3.eth.Contract(
-        combinedABI as AbiItem[],
+        neuroToken.abi as AbiItem[],
         neuroToken.address,
       );
       console.log("Contract instance created:", contract);
@@ -226,7 +181,7 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
       console.log("Fetching staked amount for account:", account);
       const stakedWei: string = await contract.methods
-        .stakedTokens(account)
+        .getStakedAmount(account)
         .call();
       console.log("Staked amount in Wei:", stakedWei);
       const staked = web3.utils.fromWei(stakedWei, "ether");
@@ -248,7 +203,7 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
       console.log("=== Fetching reward history ===");
 
       const contract = new web3.eth.Contract(
-        [...ERC20_ABI, ...neuroToken.abi] as AbiItem[],
+        [...neuroToken.abi] as AbiItem[],
         neuroToken.address,
       );
 
@@ -312,9 +267,9 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
       setLoading(true);
 
-      // Create contract instance
+      // Create contract instance with only NEUROToken ABI
       const contract = new web3.eth.Contract(
-        [...ERC20_ABI, ...neuroToken.abi] as AbiItem[],
+        neuroToken.abi as AbiItem[],
         neuroToken.address,
       );
 
@@ -381,9 +336,9 @@ const TokenRewards: React.FC<TokenRewardsProps> = ({ web3, account }) => {
 
       setLoading(true);
 
-      // Create contract instance
+      // Create contract instance with only NEUROToken ABI
       const contract = new web3.eth.Contract(
-        [...ERC20_ABI, ...neuroToken.abi] as AbiItem[],
+        neuroToken.abi as AbiItem[],
         neuroToken.address,
       );
 
