@@ -2,223 +2,120 @@
 
 ## Overview
 
-The NeuroHarmony frontend is built with Next.js 13 and provides a modern, responsive interface for interacting with the NeuroHarmony platform. It features real-time data visualization, blockchain integration, and a comprehensive research collaboration system.
+The NeuroHarmony frontend is built with Next.js 14 and provides a modern, responsive interface for interacting with the NeuroHarmony platform. It features real-time blockchain integration, token management, and a comprehensive research collaboration system.
 
-## 🎨 Components
+## Project Structure
 
-### DataVisualizer (`components/DataVisualizer.tsx`)
-
-Handles EEG data visualization and analysis:
-
-- Real-time signal plotting
-- Frequency analysis with band detection
-- Data export functionality
-- Interactive visualization controls
-
-```typescript
-interface Dataset {
-  id: string;
-  name: string;
-  dataType: "ECG" | "EEG" | "EOG";
-  data?: {
-    times?: number[];
-    signals?: number[][];
-  };
-  metadata: {
-    samplingRate?: number;
-    channels?: number;
-    duration?: number;
-  };
-}
+```
+frontend/
+├── app/
+│   ├── components/
+│   │   ├── features/          # Feature-specific components
+│   │   │   ├── DAOGovernance.tsx
+│   │   │   ├── TokenRewards.tsx
+│   │   │   └── ResearchCollaboration.tsx
+│   │   └── shared/           # Shared components
+│   │       ├── Modal.tsx
+│   │       └── Layout.tsx
+│   ├── contexts/             # React contexts
+│   │   └── VotingPowerContext.tsx
+│   └── lib/                  # Utility functions and Web3 setup
+│       └── web3.ts
+├── public/                   # Static assets
+└── styles/                   # Global styles
 ```
 
-### TokenRewards (`components/TokenRewards.tsx`)
+## Key Features
 
-Manages token-related operations:
+### Token Management
 
-- Token staking and unstaking
-- Reward distribution
+- NEURO token staking and unstaking
+- Real-time balance tracking
 - Transaction history
-- Balance display
+- Reward distribution
 
-### ResearchCollaboration (`components/ResearchCollaboration.tsx`)
+### DAO Governance
 
-Handles research project management:
+- Proposal creation and voting
+- Fixed voting amount (0.1 NEURO)
+- Real-time voting power tracking
+- Proposal execution
 
-- Project creation and editing
-- Team collaboration
+### Research Collaboration
+
+- Project management
 - Resource sharing
 - Progress tracking
+- Team collaboration
 
-### DAOGovernance (`components/DAOGovernance.tsx`)
-
-Manages DAO operations:
-
-- Proposal creation
-- Voting system
-- Fund allocation
-- Governance tracking
-
-### NeuroharmonyFrontend (`components/NeuroharmonyFrontend.tsx`)
-
-Main application interface:
-
-- Navigation
-- Data management
-- User authentication
-- System status
-
-## 🔌 Backend Integration
-
-### Data Processing Endpoints
-
-```typescript
-// Visualize EEG data
-const visualizeData = async (dataset: Dataset) => {
-  const response = await fetch("http://localhost:5000/api/python/visualize", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      dataType: dataset.dataType,
-      data: dataset.data,
-      metadata: dataset.metadata,
-    }),
-  });
-  return response.json();
-};
-
-// Perform frequency analysis
-const analyzeData = async (dataset: Dataset) => {
-  const response = await fetch("http://localhost:5000/api/python/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      dataType: dataset.dataType,
-      data: dataset.data,
-      metadata: dataset.metadata,
-    }),
-  });
-  return response.json();
-};
-
-// Export data
-const exportData = async (dataset: Dataset) => {
-  const response = await fetch("http://localhost:5000/api/python/export", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      dataType: dataset.dataType,
-      data: dataset.data,
-      metadata: dataset.metadata,
-    }),
-  });
-  return response.json();
-};
-```
-
-### Blockchain Integration
-
-The frontend interacts with smart contracts using Web3.js:
-
-- Wallet connection
-- Transaction signing
-- Contract interactions
-- Event listening
-
-## 🚀 Setup
+## Setup
 
 1. Install dependencies:
 
 ```bash
 npm install
-# or
-yarn install
 ```
 
-2. Set up environment variables:
-
-```bash
-cp .env.example .env.local
-```
-
-Configure:
-
-```
-NEXT_PUBLIC_RPC_URL=your_rpc_url
-NEXT_PUBLIC_CHAIN_ID=your_chain_id
-NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
-```
-
-3. Start development server:
+2. Start development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
 ```
 
-## 📦 Dependencies
+3. Access the application at `http://localhost:3000`
 
-- Next.js 13: React framework
-- Web3.js: Ethereum interaction
-- TailwindCSS: Styling
-- React: UI components
-- TypeScript: Type safety
+## Environment Variables
 
-## 🎨 Styling
+Create a `.env.local` file in the frontend directory:
 
-The application uses TailwindCSS for styling with:
+```env
+NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
+NEXT_PUBLIC_CHAIN_ID=31337
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+```
 
-- Responsive design
+## Dependencies
+
+- Next.js 14
+- React 18
+- TypeScript
+- TailwindCSS
+- Web3.js
+- React Query
+- React Context
+
+## Development
+
+### Component Structure
+
+- Feature components are in `app/components/features/`
+- Shared components are in `app/components/shared/`
+- Context providers are in `app/contexts/`
+
+### State Management
+
+- React Context for global state (e.g., voting power)
+- Local state for component-specific data
+- React Query for server state management
+
+### Styling
+
+- TailwindCSS for utility-first styling
+- Responsive design for all screen sizes
 - Dark mode support
-- Custom components
-- Consistent theming
 
-## 🔒 Security
-
-- Input validation
-- Error handling
-- Secure API calls
-- Protected routes
-- Wallet security
-
-## 🧪 Testing
-
-Run tests:
+## Testing
 
 ```bash
 npm test
-# or
-yarn test
 ```
 
-## 📱 Responsive Design
+## Contributing
 
-The UI is optimized for:
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
 
-- Desktop
-- Tablet
-- Mobile
-- Different screen sizes
+## License
 
-## 🔍 State Management
-
-- React hooks
-- Context API
-- Local storage
-- Session management
-
-## 🌐 Network Handling
-
-- Loading states
-- Error handling
-- Retry mechanisms
-- Offline support
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit changes
-4. Push to the branch
-5. Create a pull request
+MIT License - See LICENSE file for details

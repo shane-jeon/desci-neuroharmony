@@ -1,202 +1,182 @@
 # NeuroHarmony Backend
 
-This directory contains the backend services for the NeuroHarmony platform, including smart contracts and Python services.
+## Overview
 
-## 📁 Structure
+The NeuroHarmony backend consists of smart contracts, a Node.js/Express server, and a Python/Flask server. It handles blockchain interactions, data processing, and API endpoints for the NeuroHarmony platform.
+
+## Project Structure
 
 ```
 backend/
 ├── contracts/           # Solidity smart contracts
-├── python/             # Python backend services
-│   ├── app.py         # Flask server
-│   ├── requirements.txt
-│   └── *.py           # Service modules
-├── scripts/            # Deployment scripts
-└── config/            # Contract configurations
+│   ├── NEUROToken.sol
+│   ├── NeuroGrantDAO.sol
+│   └── interfaces/     # Contract interfaces
+├── scripts/            # Deployment and utility scripts
+│   ├── deploy.js
+│   └── mint.js
+├── config/             # Configuration files
+│   └── contracts.config.json
+├── python/             # Python backend server
+│   ├── app.py
+│   └── requirements.txt
+└── test/               # Contract test files
 ```
 
-## 🔧 Setup
+## Smart Contracts
 
-### Prerequisites
+### NEUROToken
 
-- Node.js v16+
-- Python 3.8+
-- Hardhat
-- Web3.py
+- ERC-20 token implementation
+- Staking functionality
+- Reward distribution
+- Voting power calculation
 
-### Smart Contracts
+### NeuroGrantDAO
 
-1. Install dependencies:
+- Proposal creation and management
+- Voting system with fixed amount (0.1 NEURO)
+- Proposal execution
+- Voting power tracking
+
+## Setup Instructions
+
+### 1. Install Dependencies
 
 ```bash
+# Install Node.js dependencies
 npm install
+
+# Install Python dependencies
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r python/requirements.txt
 ```
 
-2. Start local blockchain:
+### 2. Start Local Blockchain
 
 ```bash
+# Start Hardhat network
 npx hardhat node
 ```
 
-3. Deploy contracts:
+Keep this terminal running.
+
+### 3. Deploy Contracts
 
 ```bash
+# In a new terminal
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-### Python Backend
+### 4. Start Backend Servers
 
-1. Create virtual environment:
+1. Start Express server:
+
+```bash
+npm run dev
+```
+
+2. Start Python server:
 
 ```bash
 cd python
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+python3 app.py
 ```
 
-2. Install dependencies:
+## Contract Addresses
 
-```bash
-pip install -r requirements.txt
-```
-
-3. Start server:
-
-```bash
-python app.py
-```
-
-## 🔌 API Endpoints
-
-### Data Processing
-
-- `POST /api/python/visualize`: Visualize EEG data
-- `POST /api/python/analyze`: Frequency analysis
-- `POST /api/python/export`: Export data
-- `GET /api/python/fetch-data`: Fetch OpenNeuro data
-
-### Blockchain Integration
-
-- `POST /api/python/project`: Create research project
-- `POST /api/python/grant`: Create grant proposal
-- `POST /api/python/reward`: Distribute rewards
-- `POST /api/python/stake`: Stake tokens
-- `POST /api/python/unstake`: Unstake tokens
-- `POST /api/python/mint`: Mint tokens (dev only)
-
-## 🔐 Security
-
-- Input validation on all endpoints
-- Rate limiting
-- Data size restrictions
-- Secure transaction handling
-- Error logging
-- Access control
-
-## 📝 Smart Contracts
-
-### ResearchCollaboration.sol
-
-- Project creation and management
-- Collaboration tracking
-- Access control
-
-### NeuroGrantDAO.sol
-
-- Proposal creation and voting
-- Grant distribution
-- Governance mechanisms
-
-### NEUROToken.sol
-
-- ERC-20 implementation
-- Staking functionality
-- Reward distribution
-
-### NeuroDataProvenance.sol
-
-- Data tracking
-- Provenance verification
-
-## 🐍 Python Services
-
-### Token Management
-
-- Web3.py integration
-- Transaction handling
-- Balance checking
-- Staking operations
-
-### Data Processing
-
-- EEG data visualization
-- Frequency analysis
-- Data export
-- Size optimization
-
-### Research Integration
-
-- ResearchHub connection
-- Project management
-- Grant handling
-
-## 🔍 Logging
-
-Logs are stored in the standard output and can be redirected as needed. The logging format includes:
-
-- Timestamp
-- Log level
-- Module name
-- Message
-
-## 🚀 Development
-
-1. Make sure contracts are deployed
-2. Update contract addresses in `config/contracts.config.json`
-3. Start Python server
-4. Test endpoints with provided Postman collection
-
-## 📚 Documentation
-
-- Smart contract documentation in `contracts/docs/`
-- API documentation in OpenAPI format
-- Python module docstrings
-
-## ⚠️ Error Handling
-
-All endpoints follow a consistent error response format:
+After deployment, contract addresses will be automatically updated in `config/contracts.config.json`:
 
 ```json
 {
-  "success": false,
-  "error": "Error message",
-  "errorType": "ERROR_TYPE"
+  "NEUROToken": "0x...",
+  "NeuroGrantDAO": "0x..."
 }
 ```
 
-## 🧪 Testing
+## API Endpoints
 
-### Smart Contracts
+### Express Server (Port 5000)
+
+- `POST /api/proposals` - Create new proposal
+- `GET /api/proposals` - Get all proposals
+- `POST /api/vote` - Cast vote on proposal
+- `GET /api/voting-power` - Get user's voting power
+
+### Python Server (Port 5001)
+
+- `POST /api/analyze` - Analyze research data
+- `GET /api/collaborations` - Get research collaborations
+- `POST /api/collaborations` - Create new collaboration
+
+## Testing
+
+### Smart Contract Tests
 
 ```bash
 npx hardhat test
 ```
 
-### Python Backend
+### API Tests
 
 ```bash
-python -m pytest tests/
+# Express server tests
+npm test
+
+# Python server tests
+cd python
+python3 -m pytest
 ```
 
-## 🔄 Recent Updates
+## Development
 
-- Integrated Web3.py with smart contracts
-- Added token staking functionality
-- Implemented proper error handling
-- Added development environment tools
-- Enhanced API documentation
-- Optimized data processing
+### Adding New Contracts
 
-## 📋 Requirements
+1. Create contract in `contracts/`
+2. Add deployment script in `scripts/`
+3. Update `contracts.config.json`
+4. Write tests in `test/`
 
-See `requirements.txt` for Python dependencies and `package.json` for Node.js dependencies.
+### Adding New API Endpoints
+
+1. Express Server:
+
+   - Add route in `routes/`
+   - Add controller in `controllers/`
+   - Add tests in `test/`
+
+2. Python Server:
+   - Add route in `python/app.py`
+   - Add handler in `python/handlers/`
+   - Add tests in `python/test/`
+
+## Troubleshooting
+
+1. **Contract Deployment Issues**
+
+   - Check Hardhat node is running
+   - Verify contract addresses in config
+   - Check for compilation errors
+
+2. **Server Connection Issues**
+
+   - Verify ports 5000 and 5001 are available
+   - Check server logs for errors
+   - Ensure all dependencies are installed
+
+3. **API Errors**
+   - Check request format
+   - Verify contract interactions
+   - Check server logs
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Add tests
+4. Submit a pull request
+
+## License
+
+MIT License - See LICENSE file for details
