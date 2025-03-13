@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/Users/shanejeon/Desktop/programming/hackathons 2025/desci/desci-neuroharmony/backend/python/venv"
+VIRTUAL_ENV="/Users/shanejeon/Desktop/programming/hackathons 2025/desci/desci-neuroharmony/backend/services/python/venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

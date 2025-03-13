@@ -17,6 +17,12 @@ node_modules
 ignition/deployments/chain-31337
 
 # Python virtual environment
-python/venv/
-*.pyc
+**/venv/
+**/env/
+**/.env/
+**/.venv/
+
+# Python cache files
 __pycache__/
+*.py[cod]
+*$py.class

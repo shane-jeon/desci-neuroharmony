@@ -45,6 +45,12 @@ export interface Dataset {
     duration?: number;
     permissions: {
       isPublic: boolean;
+      authorizedResearchers: string[];
+      sharingPreferences: {
+        allowAnalysis: boolean;
+        allowSharing: boolean;
+        requiresConsent: boolean;
+      };
     };
   };
 }
