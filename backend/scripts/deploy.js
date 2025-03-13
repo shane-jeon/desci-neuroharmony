@@ -150,6 +150,11 @@ async function main() {
     console.log("ResearchCollaboration:", researchCollaborationAddress);
     console.log("ResearchFunding:", researchFundingAddress);
     console.log("ScienceToken:", scienceTokenAddress);
+
+    // Update frontend environment variables
+    console.log("\nUpdating frontend environment variables...");
+    require("./update-frontend-config");
+    console.log("Frontend environment variables updated successfully!");
   } catch (error) {
     console.error("Error during deployment:", error);
     process.exit(1);

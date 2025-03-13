@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Web3 from "web3";
 import { MetaMaskInpageProvider } from "@metamask/providers";
-import NeuroharmonyFrontend from "./components/NeuroharmonyFrontend";
-import ResearchCollaboration from "./components/ResearchCollaboration";
-import DAOGovernance from "./components/DAOGovernance";
-import TokenRewards from "./components/TokenRewards";
+import NeuroharmonyFrontend from "./components/features/NeuroharmonyFrontend";
+import ResearchCollaboration from "./components/features/ResearchCollaboration";
+import DAOGovernance from "./components/features/DAOGovernance";
+import TokenRewards from "./components/features/TokenRewards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 
 // Define a custom provider type that includes only the methods we need
@@ -33,6 +33,10 @@ export default function Home() {
   const [web3, setWeb3] = useState<Web3 | null>(null);
   const [account, setAccount] = useState<string>("");
   const [error, setError] = useState<string>("");
+
+  const showModal = (title: string, message: string) => {
+    alert(`${title}: ${message}`);
+  };
 
   useEffect(() => {
     const initWeb3 = async () => {
@@ -118,7 +122,7 @@ export default function Home() {
         </TabsContent>
 
         <TabsContent value="governance">
-          <DAOGovernance web3={web3} account={account} />
+          <DAOGovernance web3={web3} account={account} showModal={showModal} />
         </TabsContent>
 
         <TabsContent value="rewards">
