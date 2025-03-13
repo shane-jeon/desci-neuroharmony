@@ -1,17 +1,48 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { fetchDatasets, uploadDataset, Dataset } from "../lib/web3";
-import Modal from "./Modal";
 import DataVisualizer from "./DataVisualizer";
 import CollaborationPanel from "./CollaborationPanel";
+import { fetchDatasets as apiFetchDatasets } from "../lib/api";
 
 type DatasetType = "ECG" | "EEG" | "EOG" | "ALL";
 
 interface ModalState {
   isOpen: boolean;
   title: string;
-  message: string;
+  message: React.ReactNode;
 }
+
+interface CustomModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: React.ReactNode;
+}
+
+const CustomModal: React.FC<CustomModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  message,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black opacity-50" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-lg bg-white p-6">
+        <h2 className="mb-4 text-xl font-semibold">{title}</h2>
+        <div className="mb-4">{message}</div>
+        <button
+          onClick={onClose}
+          className="w-full rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const NeuroharmonyFrontend: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -30,6 +61,83 @@ const NeuroharmonyFrontend: React.FC = () => {
   });
   const [error, setError] = useState<ModalState | null>(null);
   const [success, setSuccess] = useState<ModalState | null>(null);
+  const [formData, setFormData] = useState({
+    datasetId: "",
+    origin: "",
+    license: "",
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    console.log("Input change:", { name, value, currentFormData: formData });
+    setFormData((prev) => {
+      const newState = {
+        ...prev,
+        [name]: value,
+      };
+      console.log("New form state:", newState);
+      return newState;
+    });
+  };
+
+  const UploadForm: React.FC = () => {
+    return (
+      <form onSubmit={handleUpload} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Dataset ID
+          </label>
+          <input
+            type="text"
+            name="datasetId"
+            value={formData.datasetId}
+            onChange={handleInputChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Origin
+          </label>
+          <input
+            type="text"
+            name="origin"
+            value={formData.origin}
+            onChange={handleInputChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            License
+          </label>
+          <input
+            type="text"
+            name="license"
+            value={formData.license}
+            onChange={handleInputChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          />
+        </div>
+        <div className="mt-4 flex justify-end space-x-2">
+          <button
+            type="button"
+            onClick={closeModal}
+            className="rounded bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+            Upload
+          </button>
+        </div>
+      </form>
+    );
+  };
 
   // Handle mounting state
   useEffect(() => {
@@ -44,6 +152,7 @@ const NeuroharmonyFrontend: React.FC = () => {
           setDatasets(data);
         } catch (error) {
           setError({
+            isOpen: true,
             title: "Error",
             message: "Failed to fetch datasets. Please try again later.",
           });
@@ -57,9 +166,12 @@ const NeuroharmonyFrontend: React.FC = () => {
 
   const handleUpload = async (event: React.FormEvent) => {
     event.preventDefault();
+    console.log("Form submission with data:", formData);
 
-    if (!datasetId || !origin || !license) {
+    if (!formData.datasetId || !formData.origin || !formData.license) {
+      console.log("Validation failed:", formData);
       setError({
+        isOpen: true,
         title: "Validation Error",
         message: "Please fill in all required fields.",
       });
@@ -67,32 +179,67 @@ const NeuroharmonyFrontend: React.FC = () => {
     }
 
     try {
-      const result = await uploadDataset(datasetId, origin, license);
+      setLoadingId(formData.datasetId);
+      console.log("Calling uploadDataset with:", formData);
+      const result = await uploadDataset(
+        formData.datasetId,
+        formData.origin,
+        formData.license,
+      );
+      console.log("Upload result:", result);
 
       if (result.success) {
         setSuccess({
+          isOpen: true,
           title: "Success",
           message: "Dataset uploaded successfully!",
         });
         await fetchDatasets();
-        resetForm();
+        console.log("Resetting form data after successful upload");
+        setFormData({
+          datasetId: "",
+          origin: "",
+          license: "",
+        });
       } else {
         setError({
+          isOpen: true,
           title: "Upload Failed",
-          message: result.error || "Failed to upload dataset.",
+          message: result.message || "Failed to upload dataset.",
         });
       }
     } catch (error) {
+      console.error("Upload error:", error);
       setError({
+        isOpen: true,
         title: "Error",
         message: "An unexpected error occurred. Please try again.",
       });
+    } finally {
+      setLoadingId(null);
     }
   };
 
-  const closeModal = () => {
-    setModal((prev) => ({ ...prev, isOpen: false }));
+  const openUploadModal = () => {
+    console.log("Opening upload modal with current form data:", formData);
+    setModal({
+      isOpen: true,
+      title: "Upload Dataset",
+      message: <UploadForm />,
+    });
   };
+
+  const closeModal = () => {
+    console.log("Closing modal, current form data:", formData);
+    setModal({ isOpen: false, title: "", message: "" });
+    setError(null);
+    setSuccess(null);
+  };
+
+  // Add useEffect to log form data changes
+  useEffect(() => {
+    console.log("Form data updated:", formData);
+  }, [formData]);
 
   const closeDatasetView = () => {
     setSelectedDataset(null);
@@ -118,7 +265,7 @@ const NeuroharmonyFrontend: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
         <h1 className="mb-4 text-3xl font-bold">NeuroHarmony Datasets</h1>
         <p className="text-gray-600">
@@ -206,7 +353,7 @@ const NeuroharmonyFrontend: React.FC = () => {
                       : ""
                   }`}
                   disabled={loadingId === dataset.id}
-                  onClick={() => handleUpload(event)}>
+                  onClick={openUploadModal}>
                   {loadingId === dataset.id ? "Uploading..." : "Upload"}
                 </button>
                 <button
@@ -229,11 +376,23 @@ const NeuroharmonyFrontend: React.FC = () => {
         </div>
       )}
 
-      <Modal
+      <CustomModal
         isOpen={modal.isOpen}
         onClose={closeModal}
         title={modal.title}
         message={modal.message}
+      />
+      <CustomModal
+        isOpen={error?.isOpen || false}
+        onClose={closeModal}
+        title={error?.title || ""}
+        message={error?.message || ""}
+      />
+      <CustomModal
+        isOpen={success?.isOpen || false}
+        onClose={closeModal}
+        title={success?.title || ""}
+        message={success?.message || ""}
       />
 
       {selectedDataset?.view === "visualize" && (

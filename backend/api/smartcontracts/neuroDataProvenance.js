@@ -23,10 +23,7 @@ const uploadDataset = async (req, res) => {
 
   try {
     const web3 = new Web3(process.env.RPC_URL || "http://127.0.0.1:8545");
-    const contract = new web3.eth.Contract(
-      config.NeuroDataProvenance.abi,
-      config.NeuroDataProvenance.address,
-    );
+    const contract = new web3.eth.Contract(contractABI, contractAddress);
 
     const accounts = await web3.eth.getAccounts();
     const transaction = await contract.methods
@@ -45,6 +42,8 @@ const uploadDataset = async (req, res) => {
   }
 };
 
-module.exports = {
-  uploadDataset,
-};
+// Add the route to the router
+router.post("/upload", uploadDataset);
+
+// Export the router
+module.exports = router;
