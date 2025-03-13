@@ -23,6 +23,62 @@ backend/
 └── test/               # Contract test files
 ```
 
+## Git Setup and Large File Handling
+
+### Virtual Environment
+
+The Python virtual environment (`venv`) should not be committed to Git. It's already in the `.gitignore` file.
+
+### Large Files
+
+Some Python packages (like scipy and numpy) contain large binary files. To handle this:
+
+1. Remove the virtual environment from Git tracking:
+
+```bash
+git rm -r --cached backend/python/venv
+```
+
+2. If you need to share large files, consider using Git LFS:
+
+```bash
+# Install Git LFS
+git lfs install
+
+# Track large files
+git lfs track "*.dylib"
+git lfs track "*.so"
+git lfs track "*.dll"
+```
+
+3. Add the `.gitattributes` file to your repository:
+
+```bash
+# Create .gitattributes
+echo "*.dylib filter=lfs diff=lfs merge=lfs -text" > .gitattributes
+echo "*.so filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+echo "*.dll filter=lfs diff=lfs merge=lfs -text" >> .gitattributes
+```
+
+### Clean Up Existing Large Files
+
+If you've already committed large files:
+
+1. Remove them from Git history:
+
+```bash
+git filter-branch --force --index-filter \
+  "git rm --cached --ignore-unmatch backend/python/venv/lib/python3.9/site-packages/scipy/.dylibs/libopenblas.0.dylib \
+  backend/python/venv/lib/python3.9/site-packages/numpy/.dylibs/libopenblas64_.0.dylib" \
+  --prune-empty --tag-name-filter cat -- --all
+```
+
+2. Force push the changes:
+
+```bash
+git push origin --force --all
+```
+
 ## Smart Contracts
 
 ### NEUROToken
@@ -166,9 +222,15 @@ python3 -m pytest
    - Ensure all dependencies are installed
 
 3. **API Errors**
+
    - Check request format
    - Verify contract interactions
    - Check server logs
+
+4. **Git Issues**
+   - If you see large file warnings, follow the Git Setup instructions above
+   - Make sure your virtual environment is properly ignored
+   - Use Git LFS for large binary files
 
 ## Contributing
 
