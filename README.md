@@ -2,6 +2,20 @@
 
 A decentralized platform for neuroscience research collaboration and funding.
 
+## Tech Stack
+
+- **Frontend**: Next.js, TypeScript, TailwindCSS
+- **Backend**: Python (Flask), Node.js
+- **Blockchain**: Solidity, Hardhat, Web3.js
+- **Smart Contracts**: ERC-20, DAO Governance, Data Provenance
+- **Development Tools**: MetaMask, Hardhat Network
+
+## Collaborators
+
+- [Shane J.](https://github.com/shane-jeon) - Full Stack Engineer
+- [Raghavendra](https://github.com/drraghavendra) - Blockchain Engineer
+- [Catherine](https://github.com/dr-cath) - Project Manager
+
 ## Prerequisites
 
 - Node.js (v16 or higher)
@@ -24,7 +38,7 @@ desci-neuroharmony/
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/shane-jeon/desci-neuroharmony.git
 cd desci-neuroharmony
 ```
 
@@ -85,29 +99,51 @@ This will mint 10,000 NEURO tokens to your connected wallet address.
 
 ## Smart Contract Addresses (Local Development)
 
-After deploying the contracts, you'll have these addresses (note that these will change each time you redeploy):
+When you run `npx hardhat node`, you'll get a list of accounts and their private keys. The deployment script will automatically update the contract addresses in `backend/config/contracts.config.json`. Here's an example of how the addresses will look:
 
-- NEUROToken: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
-- NeuroGrantDAO: 0x0165878A594ca255338adfa4d48449f69242Eb8F
-- NeuroDataProvenance: 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
-- ResearchCollaboration: 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6
-- ResearchFunding: 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
-- ScienceToken: 0x610178dA211FEF7D417bC0e6FeD39F05609AD788
+```
+NEUROToken: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
+NeuroGrantDAO: 0x0165878A594ca255338adfa4d48449f69242Eb8F
+NeuroDataProvenance: 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853
+ResearchCollaboration: 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6
+ResearchFunding: 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
+ScienceToken: 0x610178dA211FEF7D417bC0e6FeD39F05609AD788
+```
 
 ## Development Accounts
 
-When running the local Hardhat network, you can use these pre-funded accounts for testing:
-
-- Account #0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (default deployer)
-  - Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+When you run `npx hardhat node`, you'll get a list of pre-funded accounts and their private keys. The first account (index 0) will be used as the default deployer. You can import these accounts into MetaMask using their private keys.
 
 ## Available Features
 
-- NEURO token staking and rewards
-- Research project collaboration
-- Grant proposals and voting
-- Dataset provenance tracking
-- Research funding distribution
+- **NEURO Token Staking and Rewards**
+
+  - Stake NEURO tokens to earn rewards
+  - Rewards are distributed based on staking duration and amount
+  - Staked tokens provide voting power in the DAO
+
+- **Research Project Collaboration**
+
+  - Create and manage research projects
+  - Invite collaborators and manage permissions
+  - Track contributions and progress
+
+- **Grant Proposals and Voting**
+
+  - Create grant proposals with detailed descriptions and budgets
+  - Vote on proposals using staked NEURO tokens
+  - Execute approved proposals automatically
+
+- **Dataset Provenance Tracking**
+
+  - Upload and track neuroscience datasets
+  - Record data origin, license, and usage history
+  - Ensure data integrity and transparency
+
+- **Research Funding Distribution**
+  - Automated distribution of grant funds
+  - Milestone-based payment system
+  - Transparent fund allocation tracking
 
 ## Common Issues & Troubleshooting
 
