@@ -4,11 +4,43 @@ A decentralized platform for neuroscience research collaboration and funding.
 
 ## Tech Stack
 
-- **Frontend**: Next.js, TypeScript, TailwindCSS
-- **Backend**: Python (Flask), Node.js
-- **Blockchain**: Solidity, Hardhat, Web3.js
-- **Smart Contracts**: ERC-20
-- **Development Tools**: MetaMask, Hardhat Network
+- **Frontend**:
+
+  - Next.js 14
+  - React 18
+  - TypeScript
+  - TailwindCSS
+  - Web3.js
+  - ethers.js
+  - React Query
+  - React Router
+
+- **Backend**:
+
+  - Node.js/Express.js
+  - Python 3.8+
+  - Flask
+  - SQLAlchemy
+  - Web3.py
+
+- **Blockchain**:
+
+  - Solidity
+  - Hardhat
+  - Web3.js
+  - OpenZeppelin Contracts
+
+- **Smart Contracts**:
+
+  - ERC-20
+  - OpenZeppelin Contracts
+
+- **Development Tools**:
+  - MetaMask
+  - Hardhat Network
+  - Git
+  - npm/yarn
+  - pip
 
 ## Collaborators
 
@@ -54,6 +86,38 @@ cd desci-neuroharmony
 
 ### 2. Backend Setup
 
+You'll need to run multiple servers. Open separate terminal windows for each server.
+
+#### Terminal 1: Hardhat Node
+
+```bash
+cd backend
+npx hardhat node
+```
+
+Keep this terminal running as it hosts your local blockchain.
+
+#### Terminal 2: Deploy Smart Contracts
+
+```bash
+cd backend
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+Run this once to deploy the contracts. You can close this terminal after deployment.
+
+#### Terminal 3: Node.js/Express Server
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+This starts the Express server for handling blockchain interactions.
+
+#### Terminal 4: Python/Flask Server
+
 ```bash
 cd backend
 
@@ -61,21 +125,14 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
-# Install Node.js dependencies
-npm install
-
 # Install Python dependencies
 pip install -r requirements.txt
-
-# Start local Hardhat node
-npx hardhat node
-
-# In a new terminal, deploy smart contracts
-npx hardhat run scripts/deploy.js --network localhost
 
 # Start Python backend server
 python3 python/app.py
 ```
+
+This starts the Flask server for handling data processing and API endpoints.
 
 ### 3. Frontend Setup
 
