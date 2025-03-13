@@ -7,7 +7,7 @@ A decentralized platform for neuroscience research collaboration and funding.
 - **Frontend**: Next.js, TypeScript, TailwindCSS
 - **Backend**: Python (Flask), Node.js
 - **Blockchain**: Solidity, Hardhat, Web3.js
-- **Smart Contracts**: ERC-20, DAO Governance, Data Provenance
+- **Smart Contracts**: ERC-20
 - **Development Tools**: MetaMask, Hardhat Network
 
 ## Collaborators
@@ -29,7 +29,17 @@ A decentralized platform for neuroscience research collaboration and funding.
 ```
 desci-neuroharmony/
 ├── backend/          # Smart contracts and Python backend
+│   ├── contracts/   # Solidity smart contracts
+│   ├── scripts/     # Deployment and utility scripts
+│   ├── config/      # Configuration files
+│   ├── python/      # Python backend server
+│   └── test/        # Contract test files
 ├── frontend/         # Next.js frontend application
+│   ├── app/         # Next.js app directory
+│   ├── components/  # React components
+│   ├── lib/         # Utility functions and Web3 setup
+│   ├── styles/      # CSS and styling files
+│   └── public/      # Static assets
 └── README.md        # This file
 ```
 
@@ -46,6 +56,10 @@ cd desci-neuroharmony
 
 ```bash
 cd backend
+
+# Create and activate Python virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
 # Install Node.js dependencies
 npm install
@@ -113,6 +127,19 @@ ScienceToken: 0x610178dA211FEF7D417bC0e6FeD39F05609AD788
 ## Development Accounts
 
 When you run `npx hardhat node`, you'll get a list of pre-funded accounts and their private keys. The first account (index 0) will be used as the default deployer. You can import these accounts into MetaMask using their private keys.
+
+Example output from `npx hardhat node`:
+
+```
+Account #0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (10000 ETH)
+Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+Account #1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 (10000 ETH)
+Private Key: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+
+Account #2: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (10000 ETH)
+Private Key: 0x7c852118294e51e653712a81e05800f97a9a1845b3523e741996cf26f71b96771
+```
 
 ## Available Features
 
