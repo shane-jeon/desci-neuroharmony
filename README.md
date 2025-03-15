@@ -1,8 +1,14 @@
 # DeSci NeuroHarmony
 
+> Built for DeSci Mania Hackathon 2025 - AuraSci Bounty Track
+>
+> A decentralized platform fostering collaborative neuroscience research through transparent data sharing and community-driven analysis.
+>
+> [Join DeSci Mania Community](https://t.me/+Bl60XOFMCGA5YTdl)
+
 A decentralized platform for collaborative neuroscience research, focusing on EEG and EOG data analysis.
 
-## Contributors
+## Collaborators
 
 - [Raghavendra](https://github.com/drraghavendra) - Blockchain Engineer
 - [Shane](https://github.com/shane-jeon/) - Fullstack Engineer
@@ -233,14 +239,6 @@ npx hardhat run scripts/deploy.js --network localhost
 - Frontend development server runs on port 3000
 - Data visualization uses Chart.js for interactive plotting
 - Dataset management uses DataLad/git-annex for large files
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
 
 ## License
 
