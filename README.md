@@ -3,7 +3,7 @@
 > Built for DeSci Mania Hackathon 2025 - AuraSci Bounty Track
 >
 
-A decentralized platform for collaborative neuroscience research, focusing on EEG and EOG data analysis.
+A decentralized platform for collaborative neuroscience research, focusing on electrophysiological data collaboration and funding.
 
 ## Collaborators
 
