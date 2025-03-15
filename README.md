@@ -120,18 +120,18 @@ npx hardhat run scripts/deploy.js --network localhost
 ```bash
 # In a new terminal
 cd backend
-npm run dev
+npm start
 ```
 
 5. Start the Python backend:
 
 ```bash
 # In a new terminal
-cd backend
+cd backend/services/python
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python3 python/app.py
+python3 app.py
 ```
 
 ### 3. Frontend Setup
