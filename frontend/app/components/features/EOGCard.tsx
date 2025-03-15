@@ -29,6 +29,7 @@ interface EOGCardProps {
   initialVersion?: string;
 }
 
+// Define valid day and version types to ensure data integrity
 type DayKey = "d01" | "d02" | "d03";
 type VersionKey =
   | "v01"
@@ -52,7 +53,9 @@ export const EOGCard: React.FC<EOGCardProps> = ({ initialVersion }) => {
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedBlock, setSelectedBlock] = useState<string>("");
 
-  // Available blocks (mapped based on actual files in each version)
+  // This maps the actual structure of the Tübingen dataset
+  // Each day contains multiple blocks of recordings
+  // Only v01-v03 contain valid EOG data
   const blocks: Record<DayKey, Partial<Record<VersionKey, string[]>>> = {
     d01: {
       v01: ["b03", "b04fb1", "b05fb2", "b06fb3Correct"],
@@ -71,23 +74,21 @@ export const EOGCard: React.FC<EOGCardProps> = ({ initialVersion }) => {
     },
   };
 
-  // Available versions for EOG data (v01 to v03)
+  // Only v01-v03 contain valid EOG recordings
   const versions = ["v01", "v02", "v03"];
-
-  // Available days (d01 to d03)
   const days = ["d01", "d02", "d03"];
 
+  // Reset selections when version changes to prevent invalid combinations
   useEffect(() => {
-    // Reset block when day or version changes
     setSelectedBlock("");
     setSelectedDay("");
   }, [selectedVersion]);
 
   useEffect(() => {
-    // Reset block when day changes
     setSelectedBlock("");
   }, [selectedDay]);
 
+  // Fetch EOG data whenever selection changes
   useEffect(() => {
     const fetchData = async () => {
       if (!selectedVersion) return;
@@ -95,38 +96,27 @@ export const EOGCard: React.FC<EOGCardProps> = ({ initialVersion }) => {
       setLoading(true);
       setError(null);
       try {
+        // Default to first session if none selected
         const session =
           selectedDay && selectedBlock
             ? `${selectedDay}_${selectedBlock}`
             : "d01_b03";
-        console.log("Fetching EOG data:", {
-          version: selectedVersion,
-          participant: "p11",
-          session,
-        });
 
         const response = await fetchEOGData(selectedVersion, "p11", session);
-        console.log("EOG response:", response);
 
         if (response?.success && response.data) {
-          console.log("EOG data received:", {
-            channels: response.data.channel_names.length,
-            samplesPerChannel: response.data.data[0]?.length || 0,
-            samplingRate: response.data.sampling_rate,
-          });
           setData(response.data);
 
-          // If we used default session, set the corresponding day and block
+          // Set default selections for first load
           if (!selectedDay && !selectedBlock) {
             setSelectedDay("d01");
             setSelectedBlock("b03");
           }
         } else {
-          console.error("EOG data fetch failed:", response?.error);
           setError(response?.error || "Failed to fetch data");
         }
       } catch (error: unknown) {
-        console.error("Error fetching EOG data:", error);
+        // Provide user-friendly error messages
         if (error instanceof TypeError && error.message === "Failed to fetch") {
           setError(
             "Cannot connect to server. Please ensure the backend server is running at http://localhost:5001",
@@ -146,23 +136,26 @@ export const EOGCard: React.FC<EOGCardProps> = ({ initialVersion }) => {
     fetchData();
   }, [selectedVersion, selectedDay, selectedBlock]);
 
+  // Transform raw data into Chart.js format
+  // We convert the time axis to seconds and color-code channels
   const chartData = data
     ? {
         labels: Array.from(
           { length: data.data[0]?.length || 0 },
           (_, i) => i / 500,
-        ), // Convert to seconds (500 Hz)
+        ), // Convert to seconds (500 Hz sampling rate)
         datasets: data.data.map((channelData, index) => ({
           label: data.channel_names[index] || `Channel ${index + 1}`,
           data: channelData,
           borderColor: `hsl(${(360 / data.data.length) * index}, 70%, 50%)`,
           borderWidth: 1,
           pointRadius: 0,
-          hidden: !data.channel_names[index]?.startsWith("EOG"), // Only show EOG channels by default
+          hidden: !data.channel_names[index]?.startsWith("EOG"), // Focus on EOG channels
         })),
       }
     : null;
 
+  // Chart configuration for optimal EOG visualization
   const chartOptions = {
     responsive: true,
     plugins: {
