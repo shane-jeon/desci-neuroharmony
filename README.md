@@ -86,7 +86,28 @@ npx hardhat node
 
 Keep this terminal running.
 
-2. Deploy smart contracts:
+2. Create a `.env.local` file in the backend directory:
+
+```bash
+# In backend directory
+touch .env.local
+```
+
+Add the following environment variables to `.env.local`:
+
+```env
+NEXT_PUBLIC_PRIVATE_KEY=<YOUR_PRIVATE_KEY>
+
+# Contract addresses
+NEXT_PUBLIC_RESEARCH_COLLABORATION_ADDRESS=<YOUR_RESEARCH_COLLABORATION_ADDRESS>
+NEXT_PUBLIC_NEURO_DATA_PROVENANCE_ADDRESS=<YOUR_NEURO_DATA_PROVENANCE_ADDRESS>
+NEXT_PUBLIC_NEURO_GRANT_DAO_ADDRESS=<YOUR_NEURO_GRANT_DAO_ADDRESS>
+NEXT_PUBLIC_NEURO_TOKEN_ADDRESS=<YOUR_NEURO_TOKEN_ADDRESS>
+NEXT_PUBLIC_RESEARCH_FUNDING_ADDRESS=<YOUR_RESEARCH_FUNDING_ADDRESS>
+NEXT_PUBLIC_SCIENCE_TOKEN_ADDRESS=<YOUR_SCIENCE_TOKEN_ADDRESS>
+```
+
+3. Deploy smart contracts:
 
 ```bash
 # In a new terminal
@@ -94,7 +115,7 @@ cd backend
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-3. Start the Express server:
+4. Start the Express server:
 
 ```bash
 # In a new terminal
@@ -102,7 +123,7 @@ cd backend
 npm run dev
 ```
 
-4. Start the Python backend:
+5. Start the Python backend:
 
 ```bash
 # In a new terminal
