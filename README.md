@@ -15,12 +15,40 @@ A decentralized platform for collaborative neuroscience research, focusing on EE
 
 ```
 desci-neuroharmony/
-├── backend/           # Python Flask backend
-│   ├── datasets/     # EEG and EOG datasets
-│   └── services/     # Backend services
-├── frontend/         # Next.js frontend
-└── contracts/        # Smart contracts
+├── backend/                    # Python Flask backend
+│   ├── datasets/              # EEG and EOG datasets
+│   │   ├── eeg/              # OpenNeuro EEG dataset (ds004504)
+│   │   │   └── raw/          # Raw EEG recordings
+│   │   └── eog/              # Tübingen EOG dataset
+│   │       └── sessions/     # Session-based EOG recordings
+│   └── services/             # Backend services
+│       ├── python/           # Core Python services
+│       │   ├── processors/   # Data processing modules
+│       │   ├── api/         # REST API endpoints
+│       │   └── utils/       # Utility functions
+│       └── tests/           # Backend test suite
+├── frontend/                 # Next.js frontend
+│   ├── app/                 # Next.js app directory
+│   │   ├── components/      # React components
+│   │   │   ├── features/    # Feature-specific components
+│   │   │   └── ui/         # Reusable UI components
+│   │   ├── services/       # Frontend services
+│   │   └── types/         # TypeScript type definitions
+│   ├── public/            # Static assets
+│   └── styles/           # CSS and styling
+└── contracts/           # Smart contracts
+    ├── governance/     # DAO governance contracts
+    ├── token/         # NEURO token contracts
+    └── scripts/       # Deployment scripts
 ```
+
+### Key Components
+
+- **Backend Services**: Flask server implementing Neo library for neurophysiological data processing
+- **Data Processing**: Specialized modules for EEG/EOG analysis using Neo's object model
+- **Frontend Features**: React components for data visualization and user interaction
+- **Smart Contracts**: Solidity contracts for governance and token management
+- **Testing**: Comprehensive test suites for both backend and smart contracts
 
 ## Data Sources
 
