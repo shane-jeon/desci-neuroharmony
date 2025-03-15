@@ -1,219 +1,247 @@
 # DeSci NeuroHarmony
 
-A decentralized platform for neuroscience research collaboration and funding.
+A decentralized platform for collaborative neuroscience research, focusing on EEG and EOG data analysis.
 
-## Tech Stack
+## Contributors
 
-- **Frontend**:
-
-  - Next.js 14
-  - React 18
-  - TypeScript
-  - TailwindCSS
-  - Web3.js
-  - React Query
-  - React Context (for state management)
-
-- **Backend**:
-
-  - Node.js/Express.js
-  - Python 3.8+
-  - Flask
-  - SQLAlchemy
-  - Web3.py
-
-- **Blockchain**:
-  - Solidity
-  - Hardhat
-  - Web3.js
-  - OpenZeppelin Contracts
-
-## Prerequisites
-
-- Node.js (v18 or higher)
-- Python 3.8 or higher
-- npm or yarn
-- MetaMask wallet extension
-- Git
+- [Raghavendra](https://github.com/drraghavendra) - Blockchain Engineer
+- [Shane](https://github.com/shane-jeon/) - Fullstack Engineer
+- [Catherine](https://github.com/dr-cath) - Product Manager
 
 ## Project Structure
 
 ```
 desci-neuroharmony/
-├── backend/          # Smart contracts and Python backend
-│   ├── contracts/   # Solidity smart contracts
-│   ├── scripts/     # Deployment and utility scripts
-│   ├── config/      # Configuration files
-│   ├── python/      # Python backend server
-│   └── test/        # Contract test files
-├── frontend/         # Next.js frontend application
-│   ├── app/         # Next.js app directory
-│   │   ├── components/  # React components
-│   │   │   ├── features/  # Feature-specific components
-│   │   │   └── shared/    # Shared components
-│   │   ├── contexts/     # React contexts
-│   │   └── lib/          # Utility functions and Web3 setup
-│   ├── public/      # Static assets
-│   └── styles/      # Global styles
-└── README.md        # This file
+├── backend/           # Python Flask backend
+│   ├── datasets/     # EEG and EOG datasets
+│   └── services/     # Backend services
+├── frontend/         # Next.js frontend
+└── contracts/        # Smart contracts
 ```
 
-## Installation Guide
+## Data Sources
 
-### 1. Clone and Setup
+- EEG Dataset: OpenNeuro Dataset [ds004504](https://github.com/OpenNeuroDatasets/ds004504)
+- EOG Dataset: University of Tübingen, Tübingen, Germany [Dataset Link](https://doi.gin.g-node.org/10.12751/g-node.ng4dfr/)
+
+## Neo Integration
+
+NeuroHarmony leverages Neo, a powerful Python library designed specifically for handling neurophysiological data. This integration provides several key advantages:
+
+### Data Standardization
+
+- Support for multiple file formats including Neuralynx, Plexon, Blackrock, and more
+- Unified data structures for different types of neural data
+- Seamless integration of data from various recording devices and sources
+
+### Interoperability
+
+- Native compatibility with OpenNeuro datasets
+- Easy integration with other neurodata repositories
+- Standardized data exchange between different analysis tools
+
+### Advanced Features
+
+- Comprehensive data representation (spike trains, events, epochs)
+- Built-in unit handling and conversion
+- Efficient memory management for large datasets
+
+The Neo integration is central to our vision of creating a collaborative platform that can handle diverse neurophysiological data formats while maintaining data integrity and accessibility.
+
+## Setup Instructions
+
+### Prerequisites
+
+1. Install Node.js (v18 or higher) from [nodejs.org](https://nodejs.org/)
+2. Install Python (v3.8 or higher) from [python.org](https://python.org)
+3. Install Git from [git-scm.com](https://git-scm.com/)
+4. Install MetaMask browser extension from [metamask.io](https://metamask.io/)
+
+### MetaMask Configuration
+
+1. Install MetaMask browser extension
+2. Create a new wallet:
+
+   - Click "Create a new wallet"
+   - Follow the security steps to create your password and save your recovery phrase
+   - **IMPORTANT**: Never share your recovery phrase or private keys with anyone
+   - Store your recovery phrase securely offline
+
+3. For Development Network:
+
+   - Open MetaMask
+   - Click the network dropdown (usually says "Ethereum Mainnet")
+   - Select "Add Network"
+   - Add Hardhat Network:
+     ```
+     Network Name: Hardhat Local
+     RPC URL: http://127.0.0.1:8545
+     Chain ID: 31337
+     Currency Symbol: ETH
+     ```
+
+4. For testing purposes:
+   - Use Hardhat's built-in test accounts
+   - **NEVER** use real private keys or recovery phrases
+   - Test ETH can be obtained from faucets for development networks
+
+### Backend Setup
+
+1. Clone the repository:
 
 ```bash
-# Clone the repository
-git clone https://github.com/shane-jeon/desci-neuroharmony.git
+git clone https://github.com/your-username/desci-neuroharmony.git
 cd desci-neuroharmony
-
-# Install dependencies for both frontend and backend
-npm install
-cd backend
-npm install
-cd ../frontend
-npm install
 ```
 
-### 2. Backend Setup
-
-1. Start the local Hardhat network:
+2. Create and activate a virtual environment:
 
 ```bash
-cd backend
-npx hardhat node
-```
+# On Windows
+python -m venv venv
+.\venv\Scripts\activate
 
-Keep this terminal running.
-
-2. Create a `.env.local` file in the backend directory:
-
-```bash
-# In backend directory
-touch .env.local
-```
-
-Add the following environment variables to `.env.local`:
-
-```env
-NEXT_PUBLIC_PRIVATE_KEY=<YOUR_PRIVATE_KEY>
-
-# Contract addresses
-NEXT_PUBLIC_RESEARCH_COLLABORATION_ADDRESS=<YOUR_RESEARCH_COLLABORATION_ADDRESS>
-NEXT_PUBLIC_NEURO_DATA_PROVENANCE_ADDRESS=<YOUR_NEURO_DATA_PROVENANCE_ADDRESS>
-NEXT_PUBLIC_NEURO_GRANT_DAO_ADDRESS=<YOUR_NEURO_GRANT_DAO_ADDRESS>
-NEXT_PUBLIC_NEURO_TOKEN_ADDRESS=<YOUR_NEURO_TOKEN_ADDRESS>
-NEXT_PUBLIC_RESEARCH_FUNDING_ADDRESS=<YOUR_RESEARCH_FUNDING_ADDRESS>
-NEXT_PUBLIC_SCIENCE_TOKEN_ADDRESS=<YOUR_SCIENCE_TOKEN_ADDRESS>
-```
-
-3. Deploy smart contracts:
-
-```bash
-# In a new terminal
-cd backend
-npx hardhat run scripts/deploy.js --network localhost
-```
-
-4. Start the Express server:
-
-```bash
-# In a new terminal
-cd backend
-npm start
-```
-
-5. Start the Python backend:
-
-```bash
-# In a new terminal
-cd backend/services/python
+# On macOS/Linux
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python3 app.py
+source venv/bin/activate
 ```
 
-### 3. Frontend Setup
+3. Install Python dependencies:
 
 ```bash
-# In a new terminal
+cd backend/services/python
+pip install -r requirements.txt
+```
+
+4. Set up environment variables:
+
+```bash
+cp .env.example .env
+# Edit .env file with your configuration
+```
+
+5. Dataset Management:
+
+```bash
+# Install datalad if not already installed
+pip install datalad
+
+# Get the datasets
+cd backend/datasets
+
+# For EEG dataset
+datalad install https://github.com/OpenNeuroDatasets/ds004504.git
+datalad get ds004504/*/*/eeg/*.set
+
+# For EOG dataset
+# Follow instructions at https://doi.gin.g-node.org/10.12751/g-node.ng4dfr/
+```
+
+6. Start the Flask server:
+
+```bash
+cd backend/services/python
+python app.py
+```
+
+The server will run on http://localhost:5001
+
+### Frontend Setup
+
+1. Install Node.js dependencies:
+
+```bash
 cd frontend
+npm install
+```
+
+2. Set up environment variables:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local with your configuration
+```
+
+3. Run the development server:
+
+```bash
 npm run dev
 ```
 
-### 4. MetaMask Configuration
+The frontend will be available at http://localhost:3000
 
-1. Install MetaMask browser extension
-2. Add Hardhat Network:
-   - Network Name: Hardhat
-   - RPC URL: http://127.0.0.1:8545
-   - Chain ID: 31337
-   - Currency Symbol: ETH
-3. Import test account:
-   - Go to MetaMask > Import Account
-   - Use this private key: `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`
-   - This account has 10,000 ETH for testing
+### Smart Contract Setup
 
-### 5. Get Test NEURO Tokens
+1. Install Hardhat dependencies:
 
 ```bash
-cd backend
-npx hardhat run scripts/mint.js --network localhost
+cd contracts
+npm install
 ```
 
-## Available Features
+2. Start local blockchain:
 
-- **NEURO Token Staking and Rewards**
+```bash
+npx hardhat node
+```
 
-  - Stake NEURO tokens to earn rewards
-  - Track staking history and rewards
-  - Unstake tokens with cooldown period
+3. Deploy contracts:
 
-- **DAO Governance**
+```bash
+npx hardhat run scripts/deploy.js --network localhost
+```
 
-  - Create and vote on proposals
-  - Fixed voting amount (0.1 NEURO per vote)
-  - Real-time voting power tracking
+## Features
 
-- **Research Collaboration**
-  - Create and manage research projects
-  - Track contributions and progress
-  - Share resources and findings
+- EEG Data Visualization
 
-## Troubleshooting
+  - Interactive time series plots using Chart.js
+  - Multiple channel visualization with Neo-powered data processing
+  - Advanced signal analysis and filtering capabilities
+  - Comprehensive metadata handling through Neo's object model
+  - Real-time data conversion and standardization
 
-1. **MetaMask Connection Issues**
+- EOG Data Analysis
+  - BrainVision format support via Neo's I/O modules
+  - Session-based data management with standardized data structures
+  - Advanced signal processing leveraging Neo's analysis tools
+  - Automated artifact detection and removal
 
-   - Reset account: MetaMask Settings > Advanced > Reset Account
-   - Ensure you're on the Hardhat network
-   - Check if the contract addresses match in `frontend/app/lib/web3.ts`
+## Dependencies
 
-2. **Contract Deployment Issues**
+### Backend
 
-   - Verify Hardhat node is running
-   - Check contract addresses in `backend/config/contracts.config.json`
-   - Ensure you have enough ETH in your test account
+- Flask
+- Flask-CORS
+- NumPy
+- Neo
+- MNE
+- DataLad (for dataset management)
+- Web3.py
 
-3. **Backend Connection Issues**
+### Frontend
 
-   - Verify all servers are running
-   - Check console for specific error messages
-   - Ensure ports 3000 (frontend), 5000 (Express), and 5001 (Flask) are available
+- Next.js
+- React
+- Chart.js
+- react-chartjs-2
+- TailwindCSS
 
-4. **Transaction Failures**
-   - Check MetaMask for transaction errors
-   - Verify you have enough ETH for gas
-   - Ensure you're connected to the correct network
+## Development
+
+- Backend API runs on port 5001
+- Frontend development server runs on port 3000
+- Data visualization uses Chart.js for interactive plotting
+- Dataset management uses DataLad/git-annex for large files
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create your feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a pull request
+5. Create a new Pull Request
 
 ## License
 
-MIT License - See LICENSE file for details
+This project is licensed under the MIT License - see the LICENSE file for details.

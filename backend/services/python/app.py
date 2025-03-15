@@ -17,6 +17,7 @@ from hexbytes import HexBytes
 from Token_Rewards_system_for_Open_Science_Contributions_Backend import (
     stake_tokens, unstake_tokens, reward_contributor, mint_tokens
 )
+from routes.neuro_data_routes import neuro_data_bp
 
 # Configure logging
 logging.basicConfig(
@@ -24,9 +25,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Enable nested event loops
-nest_asyncio.apply()
 
 app = Flask(__name__)
 # Configure CORS with additional options
@@ -37,6 +35,9 @@ CORS(app, resources={
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
+
+# Register blueprints
+app.register_blueprint(neuro_data_bp, url_prefix='/api/neuro')
 
 def convert_to_json_serializable(obj):
     """Convert Web3 objects to JSON-serializable format."""
@@ -377,4 +378,4 @@ def mint_tokens_endpoint():
         return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=False) 
+    app.run(port=5001, debug=False) 

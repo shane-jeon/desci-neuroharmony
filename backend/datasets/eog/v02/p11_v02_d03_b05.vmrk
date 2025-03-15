@@ -1,0 +1,57 @@
+Brain Vision Data Exchange Marker File, Version 2.0
+; Data created from history path: d3_0005/Raw Data
+; The channel numbers are related to the channels in the exported file.
+
+[Common Infos]
+Codepage=UTF-8
+DataFile=p11_v02_d03_b05.dat
+
+[Marker Infos]
+; Each entry: Mk<Marker number>=<Type>,<Description>,<Position in data points>,
+; <Size in data points>, <Channel number (0 = marker is related to all channels)>,
+; <Date (YYYYMMDDhhmmssuuuuuu)>, Visible
+; Fields are delimited by commas, some fields may be omitted (empty).
+; Commas in type or description text are coded as "\1".
+Mk1=New Segment,,1,1,0,20180504153149146384
+Mk2=Stimulus,S  9,18523,1,0
+Mk3=Stimulus,S 12,21131,1,0
+Mk4=Stimulus,S  7,22233,1,0
+Mk5=Stimulus,S 13,22903,1,0
+Mk6=Stimulus,S  3,25506,1,0
+Mk7=Stimulus,S 12,25690,1,0
+Mk8=Stimulus,S  7,26792,1,0
+Mk9=Stimulus,S 13,27408,1,0
+Mk10=Stimulus,S  3,30010,1,0
+Mk11=Stimulus,S 12,31300,1,0
+Mk12=Stimulus,S  7,32402,1,0
+Mk13=Stimulus,S 13,32978,1,0
+Mk14=Stimulus,S  3,35580,1,0
+Mk15=Stimulus,S 12,35753,1,0
+Mk16=Stimulus,S  7,36855,1,0
+Mk17=Stimulus,S 13,37438,1,0
+Mk18=Stimulus,S  3,40040,1,0
+Mk19=Stimulus,S 12,40209,1,0
+Mk20=Stimulus,S  7,41311,1,0
+Mk21=Stimulus,S 13,41898,1,0
+Mk22=Stimulus,S  3,44500,1,0
+Mk23=Stimulus,S 12,44676,1,0
+Mk24=Stimulus,S  7,45779,1,0
+Mk25=Stimulus,S 13,46263,1,0
+Mk26=Stimulus,S  3,48865,1,0
+Mk27=Stimulus,S 12,49049,1,0
+Mk28=Stimulus,S  7,50151,1,0
+Mk29=Stimulus,S 13,50628,1,0
+Mk30=Stimulus,S  3,53230,1,0
+Mk31=Stimulus,S 12,53416,1,0
+Mk32=Stimulus,S  7,54518,1,0
+Mk33=Stimulus,S 13,55273,1,0
+Mk34=Stimulus,S  3,57875,1,0
+Mk35=Stimulus,S 15,58048,1,0
+
+[Marker User Infos]
+; Each entry: Prop<Number>=Mk<Marker number>,<Type>,<Name>,<Value>,<Value2>,...,<ValueN>
+; Property number must be unique. Types can be int, single, string, bool, byte, double, uint
+; or arrays of those, indicated int-array etc
+; Array types have more than one value, number of values determines size of array.
+; Fields are delimited by commas, commas in strings are written \1
+; Properties are assigned to markers using their marker number.

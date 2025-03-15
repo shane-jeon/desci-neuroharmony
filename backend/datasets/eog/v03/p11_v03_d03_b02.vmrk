@@ -1,0 +1,42 @@
+Brain Vision Data Exchange Marker File, Version 2.0
+; Data created from history path: d3_0002/Raw Data
+; The channel numbers are related to the channels in the exported file.
+
+[Common Infos]
+Codepage=UTF-8
+DataFile=p11_v03_d03_b02.dat
+
+[Marker Infos]
+; Each entry: Mk<Marker number>=<Type>,<Description>,<Position in data points>,
+; <Size in data points>, <Channel number (0 = marker is related to all channels)>,
+; <Date (YYYYMMDDhhmmssuuuuuu)>, Visible
+; Fields are delimited by commas, some fields may be omitted (empty).
+; Commas in type or description text are coded as "\1".
+Mk1=New Segment,,1,1,0,20180615121113101844
+Mk2=Stimulus,S  9,6006,1,0
+Mk3=Stimulus,S 11,7132,1,0
+Mk4=Stimulus,S  6,8313,1,0
+Mk5=Stimulus,S  8,9333,1,0
+Mk6=Stimulus,S  2,11941,1,0
+Mk7=Stimulus,S 10,12406,1,0
+Mk8=Stimulus,S  5,13564,1,0
+Mk9=Stimulus,S  4,14627,1,0
+Mk10=Stimulus,S  1,17236,1,0
+Mk11=Stimulus,S 10,17699,1,0
+Mk12=Stimulus,S  5,18858,1,0
+Mk13=Stimulus,S  4,20202,1,0
+Mk14=Stimulus,S  1,22810,1,0
+Mk15=Stimulus,S 10,23274,1,0
+Mk16=Stimulus,S  5,24432,1,0
+Mk17=Stimulus,S  4,25957,1,0
+Mk18=Stimulus,S  1,28564,1,0
+Mk19=Stimulus,S 11,29035,1,0
+Mk20=Stimulus,S  6,30193,1,0
+
+[Marker User Infos]
+; Each entry: Prop<Number>=Mk<Marker number>,<Type>,<Name>,<Value>,<Value2>,...,<ValueN>
+; Property number must be unique. Types can be int, single, string, bool, byte, double, uint
+; or arrays of those, indicated int-array etc
+; Array types have more than one value, number of values determines size of array.
+; Fields are delimited by commas, commas in strings are written \1
+; Properties are assigned to markers using their marker number.

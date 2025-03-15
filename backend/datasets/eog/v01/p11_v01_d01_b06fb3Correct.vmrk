@@ -1,0 +1,112 @@
+Brain Vision Data Exchange Marker File, Version 2.0
+; Data created from history path: p11d1b6fb3Correct/Raw Data
+; The channel numbers are related to the channels in the exported file.
+
+[Common Infos]
+Codepage=UTF-8
+DataFile=p11_v01_d01_b06fb3Correct.dat
+
+[Marker Infos]
+; Each entry: Mk<Marker number>=<Type>,<Description>,<Position in data points>,
+; <Size in data points>, <Channel number (0 = marker is related to all channels)>,
+; <Date (YYYYMMDDhhmmssuuuuuu)>, Visible
+; Fields are delimited by commas, some fields may be omitted (empty).
+; Commas in type or description text are coded as "\1".
+Mk1=New Segment,,1,1,0,20180324165106616416
+Mk2=Stimulus,S  0,155879,1,0
+Mk3=Stimulus,S  0,160988,1,0
+Mk4=Stimulus,S  0,168651,1,0
+Mk5=Stimulus,S  0,169715,1,0
+Mk6=Stimulus,S  0,174819,1,0
+Mk7=Stimulus,S  0,177459,1,0
+Mk8=Stimulus,S  0,185114,1,0
+Mk9=Stimulus,S  9,288669,1,0
+Mk10=Stimulus,S 11,293787,1,0
+Mk11=Stimulus,S  6,301449,1,0
+Mk12=Stimulus,S  8,302563,1,0
+Mk13=Stimulus,S  2,307668,1,0
+Mk14=Stimulus,S 10,310315,1,0
+Mk15=Stimulus,S  5,317970,1,0
+Mk16=Stimulus,S  4,320118,1,0
+Mk17=Stimulus,S  1,325222,1,0
+Mk18=Stimulus,S 10,327578,1,0
+Mk19=Stimulus,S  5,335232,1,0
+Mk20=Stimulus,S  4,337342,1,0
+Mk21=Stimulus,S  1,342446,1,0
+Mk22=Stimulus,S 10,344791,1,0
+Mk23=Stimulus,S  5,352445,1,0
+Mk24=Stimulus,S  4,353877,1,0
+Mk25=Stimulus,S  1,358981,1,0
+Mk26=Stimulus,S 11,361306,1,0
+Mk27=Stimulus,S  6,368961,1,0
+Mk28=Stimulus,S  8,370082,1,0
+Mk29=Stimulus,S  2,375187,1,0
+Mk30=Stimulus,S 10,377586,1,0
+Mk31=Stimulus,S  5,385239,1,0
+Mk32=Stimulus,S  4,386336,1,0
+Mk33=Stimulus,S  1,391440,1,0
+Mk34=Stimulus,S 11,393767,1,0
+Mk35=Stimulus,S  6,401420,1,0
+Mk36=Stimulus,S  8,402406,1,0
+Mk37=Stimulus,S  2,407510,1,0
+Mk38=Stimulus,S 11,409909,1,0
+Mk39=Stimulus,S  6,417563,1,0
+Mk40=Stimulus,S  8,418751,1,0
+Mk41=Stimulus,S  2,423854,1,0
+Mk42=Stimulus,S 10,426251,1,0
+Mk43=Stimulus,S  5,433904,1,0
+Mk44=Stimulus,S  4,435516,1,0
+Mk45=Stimulus,S  1,440619,1,0
+Mk46=Stimulus,S 10,442946,1,0
+Mk47=Stimulus,S  5,450600,1,0
+Mk48=Stimulus,S  4,451911,1,0
+Mk49=Stimulus,S  1,457014,1,0
+Mk50=Stimulus,S 11,459355,1,0
+Mk51=Stimulus,S  6,467008,1,0
+Mk52=Stimulus,S  8,468630,1,0
+Mk53=Stimulus,S  2,473733,1,0
+Mk54=Stimulus,S 11,476124,1,0
+Mk55=Stimulus,S  6,483778,1,0
+Mk56=Stimulus,S  8,485205,1,0
+Mk57=Stimulus,S  2,490310,1,0
+Mk58=Stimulus,S 11,492706,1,0
+Mk59=Stimulus,S  6,500359,1,0
+Mk60=Stimulus,S  8,501505,1,0
+Mk61=Stimulus,S  2,506608,1,0
+Mk62=Stimulus,S 10,508933,1,0
+Mk63=Stimulus,S  5,516586,1,0
+Mk64=Stimulus,S  4,517714,1,0
+Mk65=Stimulus,S  1,522817,1,0
+Mk66=Stimulus,S 11,525151,1,0
+Mk67=Stimulus,S  6,532804,1,0
+Mk68=Stimulus,S  8,534199,1,0
+Mk69=Stimulus,S  2,539302,1,0
+Mk70=Stimulus,S 11,541697,1,0
+Mk71=Stimulus,S  6,549350,1,0
+Mk72=Stimulus,S  8,550314,1,0
+Mk73=Stimulus,S  2,555417,1,0
+Mk74=Stimulus,S 11,557814,1,0
+Mk75=Stimulus,S  6,565468,1,0
+Mk76=Stimulus,S  8,566473,1,0
+Mk77=Stimulus,S  2,571577,1,0
+Mk78=Stimulus,S 10,573973,1,0
+Mk79=Stimulus,S  5,581626,1,0
+Mk80=Stimulus,S  4,584028,1,0
+Mk81=Stimulus,S  1,589131,1,0
+Mk82=Stimulus,S 10,591455,1,0
+Mk83=Stimulus,S  5,599109,1,0
+Mk84=Stimulus,S  4,600328,1,0
+Mk85=Stimulus,S  1,605431,1,0
+Mk86=Stimulus,S 10,607751,1,0
+Mk87=Stimulus,S  5,615404,1,0
+Mk88=Stimulus,S  4,616538,1,0
+Mk89=Stimulus,S  1,621642,1,0
+Mk90=Stimulus,S 15,624363,1,0
+
+[Marker User Infos]
+; Each entry: Prop<Number>=Mk<Marker number>,<Type>,<Name>,<Value>,<Value2>,...,<ValueN>
+; Property number must be unique. Types can be int, single, string, bool, byte, double, uint
+; or arrays of those, indicated int-array etc
+; Array types have more than one value, number of values determines size of array.
+; Fields are delimited by commas, commas in strings are written \1
+; Properties are assigned to markers using their marker number.

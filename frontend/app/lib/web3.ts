@@ -43,6 +43,10 @@ export interface Dataset {
     samplingRate?: number;
     channels?: number;
     duration?: number;
+    subjectId?: string;
+    version?: string;
+    participant?: string;
+    session?: string;
     permissions: {
       isPublic: boolean;
       authorizedResearchers: string[];
